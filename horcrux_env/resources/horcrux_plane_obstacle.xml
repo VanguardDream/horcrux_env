@@ -1,0 +1,49 @@
+<!-- Copyright 2024 Bongsub Song
+ doorebong@gmail.com
+ -->
+
+ <mujoco model="Horcrux v2 with flat plane">
+    <include file="horcrux_p.xml"/>
+    <option timestep="0.005"/>
+    <size memory="512M"/>
+
+    <asset>
+        <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100"/>
+        <texture builtin="flat" height="1278" mark="cross" markrgb="1 1 1" name="texgeom" random="0.01" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" type="cube" width="127"/>
+        <texture builtin="checker" height="100" name="texplane" rgb1="0 0 0" rgb2="0.8 0.8 0.8" type="2d" width="100"/>
+        <material name="MatPlane" reflectance="0" shininess="0.1" specular="1" texrepeat="30 30" texture="texplane"/>
+        <material name="geom" texture="texgeom" texuniform="true"/>
+        <material name="capsule" texture="texgeom" texuniform="true" rgba=".4 .9 .6 1" />
+        <material name="ellipsoid" texture="texgeom" texuniform="true" rgba=".4 .6 .9 1" />
+        <material name="box" texture="texgeom" texuniform="true" rgba=".4 .9 .9 1" />
+        <material name="cylinder" texture="texgeom" texuniform="true" rgba=".8 .6 .8 1" />
+        <material name="sphere" texture="texgeom" texuniform="true" rgba=".9 .1 .1 1" />
+    </asset>
+
+<worldbody>
+    <geom name="floor" type="plane" size="30 30 .5" priority="2" friction="0.65 0.015 0.01" material="MatPlane" />
+
+    <geom name="wall1" type="box" condim="1" size="3.5 0.15 0.5" rgba="0.8 0.8 0.95 0.8" pos="2 2.5 0.25"/>
+    <geom name="wall2" type="box" condim="1" size="3.5 0.15 0.5" rgba="0.8 0.8 0.95 0.8" pos="2 -2.5 0.25"/>
+    <geom name="wall3" type="box" condim="1" size="0.15 2.5 0.5" rgba="0.8 0.8 0.95 0.8" pos="5.5 0 0.25"/>
+    <geom name="wall4" type="box" condim="1" size="0.15 2.5 0.5" rgba="0.8 0.8 0.95 0.8" pos="-1.5 0 0.25"/>
+    <!-- <geom name="pvc_pipe1" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="3.5 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe2" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="3.1 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe3" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="2.7 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe4" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="2.3 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe5" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="1.9 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe6" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="1.5 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe7" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="1.1 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe8" type="box" size="0.005 0.008 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="0.7 0 0.0051" euler="90 0 0"/> -->
+
+    <geom name="pvc_pipe1" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="3.5 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe2" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="3.1 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe3" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="2.7 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe4" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="2.3 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe5" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="1.9 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe6" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="1.5 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe7" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="1.1 0 0.0051" euler="90 0 0"/>
+    <geom name="pvc_pipe8" type="box" size="0.01 0.016 2.35" priority="2" friction="0.8 0.015 0.001" rgba="1 1 1 1" pos="0.7 0 0.0051" euler="90 0 0"/>
+</worldbody>
+
+</mujoco>

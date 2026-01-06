@@ -1,0 +1,81 @@
+<!-- Copyright 2024 Bongsub Song
+ doorebong@gmail.com
+ -->
+
+ <mujoco model="Horcrux v2 with flat plane">
+    <include file="horcrux_p.xml"/>
+    <option timestep="0.005"/>
+    <size memory="512M"/>
+
+    <!-- up pipe defaults -->
+    <default>
+        <default class="pvc-visual">
+          <geom group="2" type="mesh" contype="0" conaffinity="0"/>
+        </default>
+        <default class="pvc-collision">
+          <geom group="3" type="mesh" priority="2"/>
+        </default>
+    </default>
+
+
+
+    <asset>
+        <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100"/>
+        <texture builtin="flat" height="1278" mark="cross" markrgb="1 1 1" name="texgeom" random="0.01" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" type="cube" width="127"/>
+        <texture builtin="checker" height="100" name="texplane" rgb1="0 0 0" rgb2="0.8 0.8 0.8" type="2d" width="100"/>
+        <material name="MatPlane" reflectance="0" shininess="0.1" specular="1" texrepeat="30 30" texture="texplane"/>
+        <material name="geom" texture="texgeom" texuniform="true"/>
+        <material name="capsule" texture="texgeom" texuniform="true" rgba=".4 .9 .6 1" />
+        <material name="ellipsoid" texture="texgeom" texuniform="true" rgba=".4 .6 .9 1" />
+        <material name="box" texture="texgeom" texuniform="true" rgba=".4 .9 .9 1" />
+        <material name="cylinder" texture="texgeom" texuniform="true" rgba=".8 .6 .8 1" />
+        <material name="sphere" texture="texgeom" texuniform="true" rgba=".9 .1 .1 1" />
+
+        <mesh file="./decomposing/PVC_pipe.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_0.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_1.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_2.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_3.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_4.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_5.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_6.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_7.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_8.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_9.obj"/>
+        <mesh file="./decomposing/PVC_pipe_collision_10.obj"/>
+    </asset>
+
+<worldbody>
+    <geom name="floor" type="plane" size="30 30 .5" priority="2" friction="0.65 0.015 0.01" material="MatPlane" />
+
+    <geom name="wall1" type="box" condim="1" size="1.35 0.15 0.5" rgba="0.8 0.8 0.95 0.6" pos="-0.4 1.35 0.25"/>
+    <geom name="wall2" type="box" condim="1" size="1.35 0.15 0.5" rgba="0.8 0.8 0.95 0.6" pos="-0.4 -1.35 0.25"/>
+    <geom name="wall3" type="box" condim="1" size="0.15 1.35 0.5" rgba="0.8 0.8 0.95 0.6" pos="0.7 0 0.25"/>
+    <geom name="wall4" type="box" condim="1" size="0.15 1.35 0.5" rgba="0.8 0.8 0.95 0.6" pos="-1.5 0 0.25"/>
+
+
+    <geom name="pipe4climb" type="cylinder" size="0.08 4.5" priority="2" friction="1.2 0.01 0.005" rgba="1 1 1 1" pos="-0.37 -0.05 4.2"/>
+    <geom name="pipe4climbtop" type="box" condim="1" size="1.5 1.5 0.15" rgba="1 1 1 1" pos="-0.35 -0.05 8.5"/>
+
+
+    <!-- <body name="PVC_pipe" pos="-0.45 -0.2 0" euler="90 -45 0">
+        <geom mesh="PVC_pipe" class="pvc-visual"/>
+        <geom mesh="PVC_pipe_collision_0" rgba="0.42565785987108373 0.16495606122162187 0.6954856571776246 1"   class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_1" rgba="0.80611884875774 0.1446605488665189 0.23435988490440396 1"      class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_2" rgba="0.6379074711366939 0.3896694306184134 0.0663476375143528 1"     class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_3" rgba="0.4944414425455299 0.5655739424748831 0.8534963562548866 1"     class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_4" rgba="0.16381398412780745 0.7141915697127198 0.5191676397373152 1"    class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_5" rgba="0.01934785807184669 0.9206486854639928 0.5015183260526925 1"    class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_6" rgba="0.822315650893963 0.5196693434715154 0.4974009126279476 1"      class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_7" rgba="0.38064150033045774 0.26147324643684233 0.0723698170121212 1"   class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_8" rgba="0.12936622018498045 0.09450922566494924 0.8820515379671277 1"   class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_9" rgba="0.24108938709500694 0.4334772702915214 0.9038097435757785 1"    class="pvc-collision"/>
+        <geom mesh="PVC_pipe_collision_10" rgba="0.16110884957467875 0.43828223870181504 0.25414856042161105 1" class="pvc-collision"/>
+    </body> -->
+
+    <body>
+        <camera name="pipe_climbing_watcher" mode="fixed" fovy="105" pos="-0.45 1 1.5" euler="-45 0 180"/>
+    </body>
+</worldbody>
+
+</mujoco>

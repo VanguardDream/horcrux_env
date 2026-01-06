@@ -1,0 +1,651 @@
+<!-- Copyright 2024 Bongsub Song
+ doorebong@gmail.com
+ -->
+
+<mujoco model="Horcrux v2 body">
+<!--    DGIST BRM Horcrux snake robot
+        DOF : 20
+        Actuators : 14
+        Sensors : 30
+
+        각 링크에 FSR 센서가 장착된 뱀로봇 V2 입니다. 
+    -->
+<asset>
+<!-- 메시 파일 불러오기 -->
+    <mesh name="link_collision" file="./assets/link_collision_mesh.STL"/>
+
+<!-- HEAD 링크 obj 설정 파일들 -->
+    <material name="black_medium_gloss_plastic" specular="1.0" shininess="0.099901085" rgba="0.101961 0.101961 0.101961 1.000000"/>
+    <material name="black_spray_paint" specular="1.0" shininess="0.001136835" rgba="0.058824 0.058824 0.058824 1.000000"/>
+    <material name="brushed_nickel" specular="1.0" shininess="0.006954886" rgba="1.000000 0.960784 0.890196 1.000000"/>
+    <material name="color" specular="1.0" shininess="0.005212761999999999" rgba="0.000000 0.368627 0.094118 1.000000"/>
+    <material name="color-2" specular="1.0" shininess="0.005212761999999999" rgba="1.000000 1.000000 1.000000 1.000000"/>
+    <material name="color-3" specular="1.0" shininess="0.005212761999999999" rgba="0.250980 0.250980 0.250980 1.000000"/>
+    <material name="color-4" specular="1.0" shininess="0.005212761999999999" rgba="0.870588 0.709804 0.498039 1.000000"/>
+    <material name="color-5" specular="1.0" shininess="0.005212761999999999" rgba="0.749020 0.749020 0.749020 1.000000"/>
+    <material name="color-6" specular="1.0" shininess="0.005212761999999999" rgba="0.470588 0.431373 0.274510 1.000000"/>
+    <material name="color-7" specular="1.0" shininess="0.005212761999999999" rgba="0.247059 0.247059 0.247059 1.000000"/>
+    <material name="color-8" specular="1.0" shininess="0.005212761999999999" rgba="0.929412 0.807843 0.764706 1.000000"/>
+    <material name="color-9" specular="1.0" shininess="0.005212761999999999" rgba="0.960784 0.960784 0.964706 1.000000"/>
+    <material name="frosted_plastic" specular="1.0" shininess="0.002559057" rgba="0.576471 0.929412 1.000000 1.000000"/>
+    <material name="frosted_plastic-2" specular="1.0" shininess="0.002559057" rgba="0.576471 0.929412 1.000000 1.000000"/>
+    <material name="frosted_plastic-3" specular="1.0" shininess="0.002559057" rgba="0.576471 0.929412 1.000000 1.000000"/>
+    <material name="light_grey_low_gloss_plastic" specular="1.0" shininess="0.001357886" rgba="0.498039 0.498039 0.498039 1.000000"/>
+    <material name="matte_rubber" specular="1.0" shininess="0.0012430000000000002" rgba="0.094118 0.078431 0.078431 1.000000"/>
+    <material name="satin_finish_aluminum" specular="1.0" shininess="0.003414631" rgba="0.866667 0.909804 1.000000 1.000000"/>
+    <material name="satin_finish_aluminum_(Cosmetic_Thread)" specular="1.0" shininess="0.003414631" rgba="0.866667 0.909804 1.000000 1.000000"/>
+
+    <mesh file="./assets/head_0.obj"/>
+    <mesh file="./assets/head_1.obj"/>
+    <mesh file="./assets/head_2.obj"/>
+    <mesh file="./assets/head_3.obj"/>
+    <mesh file="./assets/head_4.obj"/>
+    <mesh file="./assets/head_5.obj"/>
+    <mesh file="./assets/head_6.obj"/>
+    <mesh file="./assets/head_7.obj"/>
+    <mesh file="./assets/head_8.obj"/>
+    <mesh file="./assets/head_9.obj"/>
+    <mesh file="./assets/head_10.obj"/>
+    <mesh file="./assets/head_11.obj"/>
+    <mesh file="./assets/head_12.obj"/>
+    <mesh file="./assets/head_13.obj"/>
+    <mesh file="./assets/head_14.obj"/>
+    <mesh file="./assets/head_15.obj"/>
+    <mesh file="./assets/head_16.obj"/>
+    <mesh file="./assets/head_17.obj"/>
+    <mesh file="./assets/head_18.obj"/>
+
+<!-- Verical 링크 obj 설정 파일들 -->
+    <material name="v-color" specular="1.0" shininess="0.005212761999999999" rgba="0.247059 0.247059 0.247059 1.000000"/>
+    <material name="v-color-10" specular="1.0" shininess="0.005212761999999999" rgba="0.749020 0.749020 0.749020 1.000000"/>
+    <material name="v-color-2" specular="1.0" shininess="0.005212761999999999" rgba="0.929412 0.807843 0.764706 1.000000"/>
+    <material name="v-color-3" specular="1.0" shininess="0.005212761999999999" rgba="0.960784 0.960784 0.964706 1.000000"/>
+    <material name="v-color-4" specular="1.0" shininess="0.005212761999999999" rgba="0.117647 0.294118 0.031373 1.000000"/>
+    <material name="v-color-5" specular="1.0" shininess="0.005212761999999999" rgba="0.470588 0.431373 0.274510 1.000000"/>
+    <material name="v-color-7" specular="1.0" shininess="0.005212761999999999" rgba="1.000000 1.000000 1.000000 1.000000"/>
+    <material name="v-color-8" specular="1.0" shininess="0.005212761999999999" rgba="0.250980 0.250980 0.250980 1.000000"/>
+    <material name="v-color-9" specular="1.0" shininess="0.005212761999999999" rgba="0.870588 0.709804 0.498039 1.000000"/>
+    <material name="glossy_rubber" specular="1.0" shininess="0.005212761999999999" rgba="0.298039 0.298039 0.298039 1.000000"/>
+
+    <mesh file="./assets/v-link_0.obj"/>
+    <mesh file="./assets/v-link_1.obj"/>
+    <mesh file="./assets/v-link_2.obj"/>
+    <mesh file="./assets/v-link_3.obj"/>
+    <mesh file="./assets/v-link_4.obj"/>
+    <mesh file="./assets/v-link_5.obj"/>
+    <mesh file="./assets/v-link_6.obj"/>
+    <mesh file="./assets/v-link_7.obj"/>
+    <mesh file="./assets/v-link_8.obj"/>
+    <mesh file="./assets/v-link_9.obj"/>
+    <mesh file="./assets/v-link_10.obj"/>
+    <mesh file="./assets/v-link_11.obj"/>
+    <mesh file="./assets/v-link_12.obj"/>
+    <mesh file="./assets/v-link_13.obj"/>
+    <mesh file="./assets/v-link_14.obj"/>
+    <mesh file="./assets/v-link_15.obj"/>
+    <mesh file="./assets/v-link_16.obj"/>
+    <mesh file="./assets/v-link_17.obj"/>
+    <mesh file="./assets/v-link_18.obj"/>
+
+<!-- Horizon 링크 obj 설정 파일들 -->
+    <material name="black_medium_gloss_plastic.001" specular="1.0" shininess="0.099901085" rgba="0.101961 0.101961 0.101961 1.000000"/>
+    <material name="black_spray_paint.001" specular="1.0" shininess="0.001136835" rgba="0.058824 0.058824 0.058824 1.000000"/>
+    <material name="brushed_nickel.001" specular="1.0" shininess="0.006954886" rgba="1.000000 0.960784 0.890196 1.000000"/>
+    <material name="color-2.001" specular="1.0" shininess="0.005212761999999999" rgba="1.000000 1.000000 1.000000 1.000000"/>
+    <material name="color-3.001" specular="1.0" shininess="0.005212761999999999" rgba="0.250980 0.250980 0.250980 1.000000"/>
+    <material name="color-4.001" specular="1.0" shininess="0.005212761999999999" rgba="0.870588 0.709804 0.498039 1.000000"/>
+    <material name="color-5.001" specular="1.0" shininess="0.005212761999999999" rgba="0.749020 0.749020 0.749020 1.000000"/>
+    <material name="color-6.001" specular="1.0" shininess="0.005212761999999999" rgba="0.470588 0.431373 0.274510 1.000000"/>
+    <material name="color-7.001" specular="1.0" shininess="0.005212761999999999" rgba="0.247059 0.247059 0.247059 1.000000"/>
+    <material name="color-8.001" specular="1.0" shininess="0.005212761999999999" rgba="0.929412 0.807843 0.764706 1.000000"/>
+    <material name="color-9.001" specular="1.0" shininess="0.005212761999999999" rgba="0.960784 0.960784 0.964706 1.000000"/>
+    <material name="color.001" specular="1.0" shininess="0.005212761999999999" rgba="0.117647 0.294118 0.031373 1.000000"/>
+    <material name="frosted_plastic-2.001" specular="1.0" shininess="0.002559057" rgba="0.576471 0.929412 1.000000 1.000000"/>
+    <material name="frosted_plastic-3.001" specular="1.0" shininess="0.002559057" rgba="0.576471 0.929412 1.000000 1.000000"/>
+    <material name="frosted_plastic.001" specular="1.0" shininess="0.002559057" rgba="0.576471 0.929412 1.000000 1.000000"/>
+    <material name="glossy_rubber.001" specular="1.0" shininess="0.005212761999999999" rgba="0.298039 0.298039 0.298039 1.000000"/>
+    <material name="light_grey_low_gloss_plastic.001" specular="1.0" shininess="0.001357886" rgba="0.498039 0.498039 0.498039 1.000000"/>
+    <material name="satin_finish_aluminum.001" specular="1.0" shininess="0.003414631" rgba="0.866667 0.909804 1.000000 1.000000"/>
+    <material name="satin_finish_aluminum_(Cosmetic_Thread).001" specular="1.0" shininess="0.003414631" rgba="0.866667 0.909804 1.000000 1.000000"/>
+
+    <mesh file="./assets/h-link_0.obj"/>
+    <mesh file="./assets/h-link_1.obj"/>
+    <mesh file="./assets/h-link_2.obj"/>
+    <mesh file="./assets/h-link_3.obj"/>
+    <mesh file="./assets/h-link_4.obj"/>
+    <mesh file="./assets/h-link_5.obj"/>
+    <mesh file="./assets/h-link_6.obj"/>
+    <mesh file="./assets/h-link_7.obj"/>
+    <mesh file="./assets/h-link_8.obj"/>
+    <mesh file="./assets/h-link_9.obj"/>
+    <mesh file="./assets/h-link_10.obj"/>
+    <mesh file="./assets/h-link_11.obj"/>
+    <mesh file="./assets/h-link_12.obj"/>
+    <mesh file="./assets/h-link_13.obj"/>
+    <mesh file="./assets/h-link_14.obj"/>
+    <mesh file="./assets/h-link_15.obj"/>
+    <mesh file="./assets/h-link_16.obj"/>
+    <mesh file="./assets/h-link_17.obj"/>
+    <mesh file="./assets/h-link_18.obj"/>
+</asset>
+
+<!-- 디폴트 설정 -->
+<default>
+    <!-- Robotis XM430-W250 -->
+    <motor ctrlrange="-3 3" ctrllimited="true"/>
+
+    <default class="joint_defaults">
+        <joint type="hinge" pos="0.0685 0 0" limited="true" range="-45 45" damping="0.13" armature="0.01" />
+    </default>
+
+    <default class="collision-mesh">
+        <geom type="mesh" mesh="link_collision" mass="0.165" condim="4" rgba="0.5 0.5 0.5 0.1" priority="1" friction="0.7 0.015 0.001" euler="90 90 0"/>
+    </default>
+
+    <default class="visual">
+        <geom group="2" type="mesh" mass="0" contype="0" conaffinity="0"/>
+    </default>
+
+    <default class="collision">
+        <geom group="3" type="mesh"/>
+    </default>
+</default>
+
+<visual>
+    <map force="0.1" zfar="30"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <quality shadowsize="4096"/>
+    <global offwidth="1280" offheight="1280"/>
+</visual>
+
+<!-- 바디 정의 시작 -->
+<worldbody>
+
+<body>
+    <camera name="ceiling" mode="fixed" fovy="90" pos="0 0 25" euler="0 0 0"/>
+</body>
+
+<body name="link1" pos="0 0 2.1" euler="0 0 0"> 
+    <freejoint name="root"/>
+    <site name="s_tool" pos="0.05 0 0.0" euler="0 0 0" rgba="0.2 0.9 0.3 1"/>
+    <site name="s_link1_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+    <site name="s_link1_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+    <geom class="collision-mesh"/> 
+    <geom mesh="head_0"  pos="0 0 -0.03125" euler="0 90 90" material="matte_rubber" class="visual"/>
+    <geom mesh="head_1"  pos="0 0 -0.03125" euler="0 90 90" material="color-9" class="visual"/>
+    <geom mesh="head_2"  pos="0 0 -0.03125" euler="0 90 90" material="color-8" class="visual"/>
+    <geom mesh="head_3"  pos="0 0 -0.03125" euler="0 90 90" material="color-7" class="visual"/>
+    <geom mesh="head_4"  pos="0 0 -0.03125" euler="0 90 90" material="color-6" class="visual"/>
+    <geom mesh="head_5"  pos="0 0 -0.03125" euler="0 90 90" material="color-5" class="visual"/>
+    <geom mesh="head_6"  pos="0 0 -0.03125" euler="0 90 90" material="color-4" class="visual"/>
+    <geom mesh="head_7"  pos="0 0 -0.03125" euler="0 90 90" material="color-3" class="visual"/>
+    <geom mesh="head_8"  pos="0 0 -0.03125" euler="0 90 90" material="color-2" class="visual"/>
+    <geom mesh="head_9"  pos="0 0 -0.03125" euler="0 90 90" material="color" class="visual"/>
+    <geom mesh="head_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+    <geom mesh="head_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+    <geom mesh="head_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+    <geom mesh="head_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+    <geom mesh="head_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+    <geom mesh="head_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+    <geom mesh="head_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+    <geom mesh="head_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+    <geom mesh="head_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+    <body name="link2" pos="-0.0685 0 0" euler="0 0 0">
+        <joint class="joint_defaults" name="joint1" axis="0 1 0"/>
+        <site name="s_link2_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+        <site name="s_link2_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+        <geom class="collision-mesh"/>
+        <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+        <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+        <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+        <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+        <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+        <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+        <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+        <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+        <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+        <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+        <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+        <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+        <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+        <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+        <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+        <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+        <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+        <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+        <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+        <body name="link3" pos="-0.0685 0 0" euler="0 0 0">
+            <joint class="joint_defaults" name="joint2" axis="0 0 1"/>
+            <site name="s_link3_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+            <site name="s_link3_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+            <geom class="collision-mesh"/> 
+            <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+            <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+            <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+            <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+            <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+            <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+            <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+            <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+            <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+            <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+            <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+            <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+            <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+            <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+            <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+            <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+            <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+            <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+            <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+            <body name="link4" pos="-0.0685 0 0" euler="0 0 0">
+                <joint class="joint_defaults" name="joint3" axis="0 1 0"/>
+                <site name="s_link4_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                <site name="s_link4_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                <geom class="collision-mesh"/> 
+                <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                <body name="link5" pos="-0.0685 0 0" euler="0 0 0">
+                    <joint class="joint_defaults" name="joint4" axis="0 0 1"/>
+                    <site name="s_link5_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                    <site name="s_link5_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                    <geom class="collision-mesh"/> 
+                    <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                    <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                    <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                    <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                    <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                    <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                    <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                    <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                    <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                    <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                    <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                    <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                    <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                    <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                    <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                    <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                    <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                    <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                    <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                    <body name="link6" pos="-0.0685 0 0" euler="0 0 0">
+                        <joint class="joint_defaults" name="joint5" axis="0 1 0"/>
+                        <site name="s_link6_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                        <site name="s_link6_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                        <geom class="collision-mesh"/> 
+                        <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                        <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                        <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                        <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                        <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                        <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                        <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                        <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                        <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                        <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                        <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                        <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                        <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                        <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                        <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                        <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                        <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                        <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                        <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                        <body name="link7" pos="-0.0685 0 0" euler="0 0 0">
+                            <joint class="joint_defaults" name="joint6" axis="0 0 1"/>
+                            <site name="s_link7_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                            <site name="s_link7_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                            <geom class="collision-mesh"/> 
+                            <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                            <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                            <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                            <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                            <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                            <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                            <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                            <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                            <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                            <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                            <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                            <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                            <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                            <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                            <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                            <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                            <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                            <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                            <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                            <body name="link8" pos="-0.0685 0 0" euler="0 0 0">
+                                <joint class="joint_defaults" name="joint7" axis="0 1 0"/>
+                                <site name="s_link8_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                <site name="s_link8_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                <geom class="collision-mesh"/> 
+                                <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                <body name="link9" pos="-0.0685 0 0" euler="0 0 0">
+                                    <joint class="joint_defaults" name="joint8" axis="0 0 1"/>
+                                    <site name="s_link9_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                    <site name="s_link9_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                    <geom class="collision-mesh"/> 
+                                    <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                    <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                    <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                    <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                    <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                    <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                    <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                    <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                    <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                    <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                    <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                    <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                    <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                    <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                    <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                    <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                    <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                    <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                    <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                    <body name="link10" pos="-0.0685 0 0" euler="0 0 0">
+                                        <joint class="joint_defaults" name="joint9" axis="0 1 0"/>
+                                        <site name="s_link10_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                        <site name="s_link10_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                        <geom class="collision-mesh"/> 
+                                        <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                        <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                        <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                        <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                        <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                        <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                        <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                        <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                        <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                        <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                        <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                        <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                        <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                        <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                        <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                        <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                        <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                        <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                        <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                        <body name="link11" pos="-0.0685 0 0" euler="0 0 0">
+                                            <joint class="joint_defaults" name="joint10" axis="0 0 1"/>
+                                            <site name="s_link11_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                            <site name="s_link11_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                            <geom class="collision-mesh"/> 
+                                            <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                            <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                            <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                            <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                            <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                            <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                            <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                            <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                            <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                            <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                            <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                            <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                            <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                            <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                            <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                            <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                            <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                            <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                            <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                            <body name="link12" pos="-0.0685 0 0" euler="0 0 0">
+                                                <joint class="joint_defaults" name="joint11" axis="0 1 0"/>
+                                                <site name="s_link12_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                                <site name="s_link12_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                                <geom class="collision-mesh"/> 
+                                                <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                                <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                                <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                                <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                                <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                                <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                                <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                                <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                                <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                                <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                                <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                                <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                                <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                                <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                                <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                                <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                                <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                                <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                                <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                                <body name="link13" pos="-0.0685 0 0" euler="0 0 0">
+                                                    <joint class="joint_defaults" name="joint12" axis="0 0 1"/>
+                                                    <site name="s_link13_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                                    <site name="s_link13_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                                    <geom class="collision-mesh"/> 
+                                                    <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                                    <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                                    <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                                    <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                                    <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                                    <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                                    <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                                    <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                                    <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                                    <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                                    <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                                    <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                                    <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                                    <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                                    <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                                    <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                                    <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                                    <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                                    <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                                    <body name="link14" pos="-0.0685 0 0" euler="0 0 0">
+                                                        <joint class="joint_defaults" name="joint13" axis="0 1 0"/>
+                                                        <site name="s_link14_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                                        <site name="s_link14_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                                        <geom class="collision-mesh"/> 
+                                                        <geom mesh="h-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                                        <geom mesh="h-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                                        <geom mesh="h-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                                        <geom mesh="h-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                                        <geom mesh="h-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                                        <geom mesh="h-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                                        <geom mesh="h-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                                        <geom mesh="h-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                                        <geom mesh="h-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                                        <geom mesh="h-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                                        <geom mesh="h-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                                        <geom mesh="h-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                                        <geom mesh="h-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                                        <geom mesh="h-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                                        <geom mesh="h-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                                        <geom mesh="h-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                                        <geom mesh="h-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                                        <geom mesh="h-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                                        <geom mesh="h-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                                        <body name="link15" pos="-0.0685 0 0" euler="0 0 0">
+                                                            <joint class="joint_defaults" name="joint14" axis="0 0 1"/>
+                                                            <site name="s_link15_top" type="box" size="0.021 0.038 0.014" pos="0.016 0 0.018" rgba="0.8 0.1 0.2 0.3"/>
+                                                            <site name="s_link15_bot" type="box" size="0.021 0.038 0.014" pos="0.016 0 -0.018" rgba="0.2 0.1 0.8 0.3"/>
+                                                            <geom class="collision-mesh"/> 
+                                                            <geom mesh="v-link_0"  pos="0 0 -0.03125" euler="0 90 90" material="glossy_rubber" class="visual"/>
+                                                            <geom mesh="v-link_1"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-10" class="visual"/>
+                                                            <geom mesh="v-link_2"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-9" class="visual"/>
+                                                            <geom mesh="v-link_3"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-8" class="visual"/>
+                                                            <geom mesh="v-link_4"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-7" class="visual"/>
+                                                            <geom mesh="v-link_5"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-5" class="visual"/>
+                                                            <geom mesh="v-link_6"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-4" class="visual"/>
+                                                            <geom mesh="v-link_7"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-3" class="visual"/>
+                                                            <geom mesh="v-link_8"  pos="0 0 -0.03125" euler="0 90 90" material="v-color-2" class="visual"/>
+                                                            <geom mesh="v-link_9"  pos="0 0 -0.03125" euler="0 90 90" material="v-color" class="visual"/>
+                                                            <geom mesh="v-link_10" pos="0 0 -0.03125" euler="0 90 90" material="light_grey_low_gloss_plastic" class="visual"/>
+                                                            <geom mesh="v-link_11" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-3" class="visual"/>
+                                                            <geom mesh="v-link_12" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic-2" class="visual"/>
+                                                            <geom mesh="v-link_13" pos="0 0 -0.03125" euler="0 90 90" material="frosted_plastic" class="visual"/>
+                                                            <geom mesh="v-link_14" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum_(Cosmetic_Thread)" class="visual"/>
+                                                            <geom mesh="v-link_15" pos="0 0 -0.03125" euler="0 90 90" material="satin_finish_aluminum" class="visual"/>
+                                                            <geom mesh="v-link_16" pos="0 0 -0.03125" euler="0 90 90" material="black_medium_gloss_plastic" class="visual"/>
+                                                            <geom mesh="v-link_17" pos="0 0 -0.03125" euler="0 90 90" material="brushed_nickel" class="visual"/>
+                                                            <geom mesh="v-link_18" pos="0 0 -0.03125" euler="0 90 90" material="black_spray_paint" class="visual"/>
+                                                        </body>
+                                                    </body>
+                                                </body>
+                                            </body>
+                                        </body>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </body>
+    <body>
+        <camera name="com" mode="targetbodycom" fovy="45" pos="-2 0 1.2" euler="0 -50 -90"/>
+    </body>
+</body>
+
+</worldbody>
+
+<actuator>
+    <motor name="motor_1"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint1"/>
+    <motor name="motor_2"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint2"/>
+    <motor name="motor_3"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint3"/>
+    <motor name="motor_4"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint4"/>
+    <motor name="motor_5"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint5"/>
+    <motor name="motor_6"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint6"/>
+    <motor name="motor_7"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint7"/>
+    <motor name="motor_8"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint8"/>
+    <motor name="motor_9"  ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint9"/>
+    <motor name="motor_10" ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint10"/>
+    <motor name="motor_11" ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint11"/>
+    <motor name="motor_12" ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint12"/>
+    <motor name="motor_13" ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint13"/>
+    <motor name="motor_14" ctrllimited="true" ctrlrange="-3.0 3.0" gear="1" joint="joint14"/>
+</actuator>
+
+<sensor>
+    <jointpos name="pos_joint1"  joint="joint1" />
+    <jointpos name="pos_joint2"  joint="joint2" />
+    <jointpos name="pos_joint3"  joint="joint3" />
+    <jointpos name="pos_joint4"  joint="joint4" />
+    <jointpos name="pos_joint5"  joint="joint5" />
+    <jointpos name="pos_joint6"  joint="joint6" />
+    <jointpos name="pos_joint7"  joint="joint7" />
+    <jointpos name="pos_joint8"  joint="joint8" />
+    <jointpos name="pos_joint9"  joint="joint9" />
+    <jointpos name="pos_joint10" joint="joint10"/>
+    <jointpos name="pos_joint11" joint="joint11"/>
+    <jointpos name="pos_joint12" joint="joint12"/>
+    <jointpos name="pos_joint13" joint="joint13"/>
+    <jointpos name="pos_joint14" joint="joint14"/>
+
+    <jointvel name="vel_joint1"  joint="joint1" />
+    <jointvel name="vel_joint2"  joint="joint2" />
+    <jointvel name="vel_joint3"  joint="joint3" />
+    <jointvel name="vel_joint4"  joint="joint4" />
+    <jointvel name="vel_joint5"  joint="joint5" />
+    <jointvel name="vel_joint6"  joint="joint6" />
+    <jointvel name="vel_joint7"  joint="joint7" />
+    <jointvel name="vel_joint8"  joint="joint8" />
+    <jointvel name="vel_joint9"  joint="joint9" />
+    <jointvel name="vel_joint10" joint="joint10"/>
+    <jointvel name="vel_joint11" joint="joint11"/>
+    <jointvel name="vel_joint12" joint="joint12"/>
+    <jointvel name="vel_joint13" joint="joint13"/>
+    <jointvel name="vel_joint14" joint="joint14"/>
+
+    <actuatorfrc name="tor_joint1" actuator="motor_1"/>
+    <actuatorfrc name="tor_joint2" actuator="motor_2"/>
+    <actuatorfrc name="tor_joint3" actuator="motor_3"/>
+    <actuatorfrc name="tor_joint4" actuator="motor_4"/>
+    <actuatorfrc name="tor_joint5" actuator="motor_5"/>
+    <actuatorfrc name="tor_joint6" actuator="motor_6"/>
+    <actuatorfrc name="tor_joint7" actuator="motor_7"/>
+    <actuatorfrc name="tor_joint8" actuator="motor_8"/>
+    <actuatorfrc name="tor_joint9" actuator="motor_9"/>
+    <actuatorfrc name="tor_joint10" actuator="motor_10"/>
+    <actuatorfrc name="tor_joint11" actuator="motor_11"/>
+    <actuatorfrc name="tor_joint12" actuator="motor_12"/>
+    <actuatorfrc name="tor_joint13" actuator="motor_13"/>
+    <actuatorfrc name="tor_joint14" actuator="motor_14"/>
+
+    <touch name="top_link1" site="s_link1_top"/>
+    <touch name="top_link2" site="s_link2_top"/>
+    <touch name="top_link3" site="s_link3_top"/>
+    <touch name="top_link4" site="s_link4_top"/>
+    <touch name="top_link5" site="s_link5_top"/>
+    <touch name="top_link6" site="s_link6_top"/>
+    <touch name="top_link7" site="s_link7_top"/>
+    <touch name="top_link8" site="s_link8_top"/>
+    <touch name="top_link9" site="s_link9_top"/>
+    <touch name="top_link10" site="s_link10_top"/>
+    <touch name="top_link11" site="s_link11_top"/>
+    <touch name="top_link12" site="s_link12_top"/>
+    <touch name="top_link13" site="s_link13_top"/>
+    <touch name="top_link14" site="s_link14_top"/>
+    <!-- <touch name="top_link15" site="s_link15_top"/> -->
+
+    <touch name="bot_link1" site="s_link1_bot"/>
+    <touch name="bot_link2" site="s_link2_bot"/>
+    <touch name="bot_link3" site="s_link3_bot"/>
+    <touch name="bot_link4" site="s_link4_bot"/>
+    <touch name="bot_link5" site="s_link5_bot"/>
+    <touch name="bot_link6" site="s_link6_bot"/>
+    <touch name="bot_link7" site="s_link7_bot"/>
+    <touch name="bot_link8" site="s_link8_bot"/>
+    <touch name="bot_link9" site="s_link9_bot"/>
+    <touch name="bot_link10" site="s_link10_bot"/>
+    <touch name="bot_link11" site="s_link11_bot"/>
+    <touch name="bot_link12" site="s_link12_bot"/>
+    <touch name="bot_link13" site="s_link13_bot"/>
+    <touch name="bot_link14" site="s_link14_bot"/>
+    <!-- <touch name="bot_link15" site="s_link15_bot"/> -->
+
+    <framequat name="head_quat" objtype="site" objname="s_tool"/>
+    <gyro name="head_angvel" site="s_tool"/>
+    <accelerometer name="head_linacc" site="s_tool"/>
+
+</sensor>
+
+</mujoco>

@@ -1,0 +1,29 @@
+<!-- Copyright 2024 Bongsub Song
+ doorebong@gmail.com
+ -->
+
+ <mujoco model="Horcrux v2 with flat plane">
+    <include file="horcrux_p.xml"/>
+    <option timestep="0.005" cone="elliptic"/>
+    <size memory="-1"/>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" width="512" height="512" rgb1=".4 .6 .8" rgb2="0 0 0"/>
+        <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="128" height="128"
+                 rgb1="0.6 0.6 0.6" rgb2="0.6 0.6 0.6" markrgb="1 1 1"/>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".4 .4 .4" rgb2=".6 .6 .6"
+                 width="512" height="512"/>
+        <material name="MatPlane" reflectance="0.0" texture="texplane" texrepeat="1 1" texuniform="true"
+                  rgba=".7 .7 .7 1"/>
+        <material name="capsule" texture="texgeom" texuniform="true" rgba=".4 .9 .6 1" />
+        <material name="ellipsoid" texture="texgeom" texuniform="true" rgba=".4 .6 .9 1" />
+        <material name="box" texture="texgeom" texuniform="true" rgba=".4 .9 .9 1" />
+        <material name="cylinder" texture="texgeom" texuniform="true" rgba=".8 .6 .8 1" />
+        <material name="sphere" texture="texgeom" texuniform="true" rgba=".9 .1 .1 1" />
+    </asset>
+
+<worldbody>
+    <geom name="floor" type="plane" size="30 30 .5" priority="2" friction="0.65 0.015 0.01" material="MatPlane"/>
+</worldbody>
+
+</mujoco>
