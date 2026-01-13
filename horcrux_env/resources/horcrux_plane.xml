@@ -4,8 +4,7 @@
 
  <mujoco model="Horcrux v2 with flat plane">
     <include file="horcrux_p.xml"/>
-    <option timestep="0.005" cone="elliptic"/>
-    <size memory="-1"/>
+    <option timestep="0.005"/>
 
     <asset>
         <texture type="skybox" builtin="gradient" width="512" height="512" rgb1=".4 .6 .8" rgb2="0 0 0"/>
