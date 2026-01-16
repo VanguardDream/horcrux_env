@@ -1,5 +1,4 @@
 from typing import Dict, Optional, Tuple, Union
-from gymnasium.envs.mujoco.mujoco_env import DEFAULT_SIZE
 from horcrux_env.envs.gait_v2 import GaitV2
 
 import importlib.resources as resources
@@ -30,6 +29,15 @@ class MovingAverageFilter1D:
         avg_x = np.mean(self.x_queue) if self.x_queue else 0.0
 
         return avg_x
+    
+    def reset(self, window_size=20):
+        if(self.x_queue.maxlen != window_size):
+            del self.x_queue
+            self.x_queue = deque(maxlen=window_size)
+            self.x_queue.clear()
+        else:
+            self.x_queue.clear()
+        
 
 class MovingAverageFilter3D:
     def __init__(self, window_size=20):
@@ -48,6 +56,24 @@ class MovingAverageFilter3D:
         avg_z = np.mean(self.z_queue) if self.z_queue else 0.0
 
         return avg_x, avg_y, avg_z
+    
+    def reset(self, window_size=20):
+        if(self.x_queue.maxlen != window_size):
+            del self.x_queue
+            del self.y_queue
+            del self.z_queue
+
+            self.x_queue = deque(maxlen=window_size)
+            self.y_queue = deque(maxlen=window_size)
+            self.z_queue = deque(maxlen=window_size)
+
+            self.x_queue.clear()
+            self.y_queue.clear()
+            self.z_queue.clear()
+        else:
+            self.x_queue.clear()
+            self.y_queue.clear()
+            self.z_queue.clear()
 
 class MovingAverageFilterQuaternion:
     def __init__(self, window_size=10):
@@ -76,6 +102,28 @@ class MovingAverageFilterQuaternion:
         _avg_rot = _rot.mean().as_quat(scalar_first=True)
 
         return _avg_rot
+    
+    def reset(self, window_size=10):
+        if(self.w_queue.maxlen != window_size):
+            del self.w_queue
+            del self.x_queue
+            del self.y_queue
+            del self.z_queue
+
+            self.w_queue = deque(maxlen=window_size)
+            self.x_queue = deque(maxlen=window_size)
+            self.y_queue = deque(maxlen=window_size)
+            self.z_queue = deque(maxlen=window_size)
+
+            self.w_queue.clear()
+            self.x_queue.clear()
+            self.y_queue.clear()
+            self.z_queue.clear()
+        else:
+            self.w_queue.clear()
+            self.x_queue.clear()
+            self.y_queue.clear()
+            self.z_queue.clear()
 
 # class MovingAverageFilterQuaternion:
 #     def __init__(self, window_size=10):
@@ -655,6 +703,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             self._gait_params = gait_params[idx]
 
             # Gait reset
+            del self._gait
             self._gait = GaitV2(self._gait_params, sampling_t = self._gait_sampling_interval, frame_skip=self.frame_skip)
 
         # System reset
@@ -684,14 +733,13 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
         _period = int(( (2 * np.pi) / (_temporal_param / 10) ) * ( 1 / (self.model.opt.timestep * self.frame_skip) ) )  # 좌변 -> 초 단위, 우변 -> 초 단위를 몇 슬롯으로 나눌지
         _period2 = int(( 1 / (self.model.opt.timestep * self.frame_skip) ) * 0.3)
 
-        self._mov_mean_vels = MovingAverageFilter3D(window_size=_period)
-        # self._mov_gait_ypr = MovingAverageFilter3D(window_size=_period * 2)
-        self._mov_gait_ypr = MovingAverageFilterQuaternion(window_size=_period * 2)
+        self._mov_mean_vels.reset(_period)
+        self._mov_gait_ypr.reset(_period * 2)
         
-        self._mov_mean_imu_vel = MovingAverageFilter3D(window_size=_period2)
-        self._mov_mean_imu_acc = MovingAverageFilter3D(window_size=_period2)
-        self._mov_mean_imu_quat = MovingAverageFilterQuaternion(window_size=_period2)
-        self._mov_vel_orient = MovingAverageFilter1D(window_size=_period2)
+        self._mov_mean_imu_vel.reset(_period2)
+        self._mov_mean_imu_acc.reset(_period2)
+        self._mov_mean_imu_quat.reset(_period2)
+        self._mov_vel_orient.reset(_period2)
 
         if self._use_friction_chg:
             u_slide = round(np.random.uniform(low=0.6, high = 0.8),2)
@@ -735,53 +783,6 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
         com_roll, com_pitch, com_yaw = robot_rot.mean().as_rotvec(True)
 
         return np.array([com_roll, com_pitch, com_yaw])
-    
-    # def chordal_mean_rot(self)->np.ndarray: #Chordal L2 method
-    #     com_roll = 0
-    #     com_pitch = 0
-    #     com_yaw = 0
-
-    #     robot_quats = np.empty((0,4))
-    #     for name in self._robot_body_names:
-    #         robot_quats = np.vstack((robot_quats, self.data.body(name).xquat.copy()))
-
-    #     robot_quats = robot_quats[:, [1, 2, 3, 0]]
-    #     robot_rot = Rotation(robot_quats)
-
-    #     com_roll, com_pitch, com_yaw = robot_rot.mean().as_rotvec(True)
-
-    #     return np.array([com_roll, com_pitch, com_yaw])
-
-    # def get_robot_rot(self)->np.ndarray: #Karcher method
-    #     com_roll = 0
-    #     com_pitch = 0
-    #     com_yaw = 0
-
-    #     robot_rots = []
-    #     for name in self._robot_body_names:
-    #         robot_quats = self.data.body(name).xquat.copy()
-    #         link_rot = Rotation.from_quat(robot_quats, scalar_first=True)
-    #         robot_rots.append(link_rot)
-
-    #     mean_rot = self.log_exp_karcher_mean(robot_rots)
-
-    #     com_roll, com_pitch, com_yaw = mean_rot.as_rotvec(True)
-
-    #     return np.array([com_roll, com_pitch, com_yaw])
-    
-    # def log_exp_karcher_mean(self, rot_list, max_iter=100, tol=1e-6):
-    #     R_mean = rot_list[0].as_matrix()
-    #     for _ in range(max_iter):
-    #         delta_sum = np.zeros((3, 3))
-    #         for r in rot_list:
-    #             delta = logm(r.as_matrix() @ R_mean.T)
-    #             delta_sum += delta
-    #         delta_avg = delta_sum / len(rot_list)
-    #         norm = np.linalg.norm(delta_avg, ord='fro')
-    #         R_mean = expm(delta_avg) @ R_mean
-    #         if norm < tol:
-    #             break
-    #     return Rotation.from_matrix(R_mean)
 
     def do_simulation(self, ctrl, n_frames):
         return super().do_simulation(ctrl, n_frames)
