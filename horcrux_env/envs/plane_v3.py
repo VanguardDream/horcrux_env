@@ -703,8 +703,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             self._gait_params = gait_params[idx]
 
             # Gait reset
-            del self._gait
-            self._gait = GaitV2(self._gait_params, sampling_t = self._gait_sampling_interval, frame_skip=self.frame_skip)
+            self._gait.reset(params=self._gait_params, frame_skip=self.frame_skip)
 
         # System reset
         # noise_low = -0.05
