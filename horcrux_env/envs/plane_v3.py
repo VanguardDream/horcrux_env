@@ -674,9 +674,9 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             directions = [
                 # np.array([0, 1]),                                # ↑ 30,30,40,40,45
                 # np.array([np.sqrt(2)/2, np.sqrt(2)/2]),          # ↗ 30,30,40,40,180
-                # np.array([1, 0]),                                # → 30,30,40,40,0
+                np.array([1, 0]),                                # → 30,30,40,40,0
                 # np.array([np.sqrt(2)/2, -np.sqrt(2)/2]),         # ↘ 30,30,40,40,0
-                np.array([0, -1]),                               # ↓ 30,30,40,40,315
+                # np.array([0, -1]),                               # ↓ 30,30,40,40,315
                 # np.array([-np.sqrt(2)/2, -np.sqrt(2)/2]),        # ↙ 30,30,40,40,45,-1
                 # np.array([-1, 0]),                               # ← 30,30,40,40,180,-1
                 # np.array([-np.sqrt(2)/2, np.sqrt(2)/2])          # ↖ 30,30,40,40,315,-1
@@ -685,9 +685,9 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             gait_params =[
                 # (30, 30, 40, 40, 45),   # ↑
                 # (30, 30, 40, 40, 23),  # ↗
-                # (30, 30, 40, 40, 0),  # →
+                (30, 30, 40, 40, 0),  # →
                 # (30, 30, 40, 40, -23),    # ↘
-                (30, 30, 40, 40, -45),  # ↓
+                # (30, 30, 40, 40, -45),  # ↓
                 # (30, 30, 40, 40, 23, -1),   # ↙
                 # (30, 30, 40, 40, 0, -1),    # ←
                 # (30, 30, 40, 40, -23, -1)   # ↖
@@ -749,7 +749,8 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
 
         self.set_state(qpos, qvel)
 
-        observation = self._get_obs(np.array([1] * 14))
+        _tmp_motion_vector = self._gait.getMvec(0).copy()
+        observation = self._get_obs(_tmp_motion_vector)
 
         return observation
     
