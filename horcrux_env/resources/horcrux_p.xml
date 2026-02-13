@@ -541,7 +541,8 @@
         </body>
     </body>
     <body>
-        <camera name="com" mode="targetbodycom" fovy="45" pos="-2 0 1.2" euler="0 -50 -90"/>
+        <!-- <camera name="com" mode="targetbodycom" fovy="45" pos="-2 0 1.2" euler="0 -50 -90"/> -->
+        <camera name="com" mode="track" fovy="45" pos="-2 0 1.2" euler="0 -50 -90"/>
     </body>
 </body>
 
