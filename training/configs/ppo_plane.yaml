@@ -1,0 +1,56 @@
+schema_version: 1
+
+experiment:
+  name: ppo_plane_baseline
+  seed: 42
+  output_dir: runs/ppo_plane
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+algorithm:
+  name: PPO
+  framework: torch
+  api_stack: new
+  training:
+    gamma: 0.99
+    lr: 0.0003
+    train_batch_size_per_learner: 4000
+    minibatch_size: 128
+    num_epochs: 10
+  model:
+    hidden_layers: [256, 256]
+    activation: tanh
+
+sampling:
+  num_env_runners: 0
+  num_envs_per_env_runner: 1
+  rollout_fragment_length: auto
+  batch_mode: truncate_episodes
+
+learners:
+  num_learners: 0
+  num_gpus_per_learner: 0
+
+evaluation:
+  interval: 10
+  duration: 5
+  duration_unit: episodes
+  explore: false
+
+checkpointing:
+  frequency: 10
+  num_to_keep: 3
+  score_attribute: evaluation/env_runners/episode_return_mean
+  score_order: max
+
+stop:
+  env_steps: 1000000

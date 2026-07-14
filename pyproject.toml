@@ -9,8 +9,17 @@ packages = ["horcrux_env"]
 name = "horcrux_env"
 version = "0.0.1"
 dependencies = [
-  "gymnasium",
+  "gymnasium[mujoco]",
   "mujoco>=3.4.0",
+  "scipy",
   "pygame>=2.1.3",
   "pre-commit",
+]
+
+[project.optional-dependencies]
+train = [
+  "ray[rllib]",
+  "torch",
+  "PyYAML",
+  "tensorboard",
 ]

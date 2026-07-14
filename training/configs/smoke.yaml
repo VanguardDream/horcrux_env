@@ -1,0 +1,48 @@
+schema_version: 1
+
+experiment:
+  name: ppo_plane_smoke
+  seed: 42
+  output_dir: runs/smoke
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+
+algorithm:
+  name: PPO
+  framework: torch
+  api_stack: new
+  training:
+    gamma: 0.99
+    lr: 0.0003
+    train_batch_size_per_learner: 512
+    minibatch_size: 64
+    num_epochs: 1
+  model:
+    hidden_layers: [64, 64]
+    activation: tanh
+
+sampling:
+  num_env_runners: 0
+  num_envs_per_env_runner: 1
+  rollout_fragment_length: auto
+  batch_mode: truncate_episodes
+
+learners:
+  num_learners: 0
+  num_gpus_per_learner: 0
+
+evaluation:
+  interval: null
+
+checkpointing:
+  frequency: 0
+  num_to_keep: 1
+
+stop:
+  training_iterations: 1
