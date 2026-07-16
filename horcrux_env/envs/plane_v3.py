@@ -484,12 +484,10 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
         observation = self._get_obs(self._motion_vector)
         reward, reward_info = self._get_rew(x_vel, y_vel, self._joy_input[0], self._joy_input[1], action, self._cur_euler_ypr, yaw_vel, self._joy_input[2], com_pos_after[0:2].copy())
         terminated = self.is_terminated and self._terminate_when_unhealthy
+        truncated = self._n_step >= 6000
 
         if self.render_mode == "human":
             self.render()
-
-        if self._n_step >= 6000:
-            terminated = True
 
         info = {
             "step": self._n_step,
@@ -519,8 +517,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             **reward_info,
         }
 
-        # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
-        return observation, reward, False, terminated, info
+        return observation, reward, terminated, truncated, info
 
     def _get_rew(self, x_vel, y_vel, joy_x, joy_y, action, cur_ypr, yaw_vel, joy_r, com_pos_after):
         """
@@ -694,7 +691,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             ]
 
             # 랜덤하게 방향 선택
-            idx = np.random.choice(len(directions))
+            idx = self.np_random.choice(len(directions))
             direction = directions[idx]
 
             # z축 회전 없이 출력
@@ -741,9 +738,9 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
         self._mov_vel_orient.reset(_period2)
 
         if self._use_friction_chg:
-            u_slide = round(np.random.uniform(low=0.6, high = 0.8),2)
-            u_torsion = round(np.random.uniform(low=0.013, high = 0.017),3)
-            u_roll = round(np.random.uniform(low=0.0008, high = 0.0012),4)
+            u_slide = round(self.np_random.uniform(low=0.6, high = 0.8),2)
+            u_torsion = round(self.np_random.uniform(low=0.013, high = 0.017),3)
+            u_roll = round(self.np_random.uniform(low=0.0008, high = 0.0012),4)
             self.model.geom('floor').friction = [u_slide, u_torsion, u_roll]
             self._friction_information = [u_slide, u_torsion, u_roll]
 

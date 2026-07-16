@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 
 experiment:
   name: ppo_plane_baseline
@@ -16,41 +16,49 @@ environment:
     use_imu_window: false
     use_vels_window: false
 
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
 algorithm:
   name: PPO
-  framework: torch
-  api_stack: new
-  training:
-    gamma: 0.99
-    lr: 0.0003
-    train_batch_size_per_learner: 4000
-    minibatch_size: 128
-    num_epochs: 10
-  model:
-    hidden_layers: [256, 256]
-    activation: tanh
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0003
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 5
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
 
-sampling:
-  num_env_runners: 0
-  num_envs_per_env_runner: 1
-  rollout_fragment_length: auto
-  batch_mode: truncate_episodes
-
-learners:
-  num_learners: 0
-  num_gpus_per_learner: 0
+training:
+  total_timesteps: 7864320
 
 evaluation:
-  interval: 10
-  duration: 5
-  duration_unit: episodes
-  explore: false
+  enabled: true
+  eval_freq: 10000
+  n_eval_episodes: 5
+  deterministic: true
 
 checkpointing:
-  frequency: 10
-  num_to_keep: 3
-  score_attribute: evaluation/env_runners/episode_return_mean
-  score_order: max
+  enabled: true
+  save_freq: 10000
 
-stop:
-  env_steps: 1000000
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

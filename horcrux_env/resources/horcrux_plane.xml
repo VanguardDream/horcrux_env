@@ -10,10 +10,10 @@
         <texture type="skybox" builtin="gradient" width="512" height="512" rgb1=".4 .6 .8" rgb2="0 0 0"/>
         <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="128" height="128"
                  rgb1="0.6 0.6 0.6" rgb2="0.6 0.6 0.6" markrgb="1 1 1"/>
-        <texture name="texplane" type="2d" builtin="checker" rgb1=".4 .4 .4" rgb2=".6 .6 .6"
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".55 .55 .55" rgb2=".75 .75 .75"
                  width="512" height="512"/>
         <material name="MatPlane" reflectance="0.0" texture="texplane" texrepeat="1 1" texuniform="true"
-                  rgba=".7 .7 .7 1"/>
+                  rgba="1 1 1 1"/>
         <material name="capsule" texture="texgeom" texuniform="true" rgba=".4 .9 .6 1" />
         <material name="ellipsoid" texture="texgeom" texuniform="true" rgba=".4 .6 .9 1" />
         <material name="box" texture="texgeom" texuniform="true" rgba=".4 .9 .9 1" />

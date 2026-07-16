@@ -283,6 +283,21 @@ env = ReacherRewardWrapper(
 )
 ```
 
+## Training with Stable-Baselines3
+
+Install the training dependencies and run the smoke configuration before a
+long experiment:
+
+```powershell
+pip install -e ".[train]"
+python training/train.py --config training/configs/smoke.yaml
+python training/train.py --config training/configs/ppo_plane.yaml
+```
+
+Training outputs, checkpoints, resolved configuration, metadata, and
+TensorBoard logs are written under `runs/`. See `training/README.md` for the
+configuration schema and evaluation commands.
+
 ## Gait Pattern Generator (GaitV2)
 
 The `GaitV2` class generates snake robot locomotion patterns based on Hirose's (1993) Serpenoid curve. This class generates periodic motion vectors for 14 joints to implement snake locomotion patterns.

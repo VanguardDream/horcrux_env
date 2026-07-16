@@ -1,4 +1,5 @@
 from horcrux_env.wrappers.clip_reward import ClipReward
 from horcrux_env.wrappers.discrete_actions import DiscreteActions
+from horcrux_env.wrappers.normalize_action import NormalizeAction
 from horcrux_env.wrappers.reacher_weighted_reward import ReacherRewardWrapper
 from horcrux_env.wrappers.relative_position import RelativePosition

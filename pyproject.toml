@@ -18,8 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 train = [
-  "ray[rllib]",
+  "stable-baselines3>=2.4.0",
   "torch",
   "PyYAML",
   "tensorboard",
+  "moviepy>=2.0",
 ]

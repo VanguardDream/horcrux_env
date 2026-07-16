@@ -1,0 +1,45 @@
+schema_version: 1
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    # Simulation
+    frame_skip: 10
+    gait_sampling_interval: 0.05
+    render_camera_name: ceiling
+
+    # Reward weights
+    forward_reward_weight: 60.0
+    rotation_reward_weight: 45.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    termination_reward: 0.0
+
+    # Cost weights
+    side_cost_weight: 60.0
+    ctrl_cost_weight: 0.0
+    proj_dist_cost_weight: 0.0
+    rotation_norm_cost_weight: 0.5
+    rotation_orientation_cost_weight: 0.05
+    unhealthy_cost_weight: 2.0
+
+    # Robot and termination
+    main_body: 2
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    healthy_roll_range: [-45.0, 45.0]
+    terminating_roll_range: [-120.0, 120.0]
+    contact_force_range: [-1.0, 1.0]
+    reset_noise_scale: 0.1
+
+    # Gait and target command
+    use_gait: true
+    # e_d2 and e_l2 (the third and fourth values) must be integers.
+    gait_params: [30, 30, 40, 40, 23]
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+
+    # Domain randomization and filters
+    use_friction_chg: false
+    use_imu_window: false
+    use_vels_window: false

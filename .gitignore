@@ -175,8 +175,11 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-# Ray / RLlib training artifacts
+# Stable-Baselines3 training artifacts
 /runs/
-/ray_results/
-/.ray/
 events.out.tfevents.*
+
+# Local AI agent instructions and workspace state
+/AGENTS.md
+/.agents/
+/.codex/
