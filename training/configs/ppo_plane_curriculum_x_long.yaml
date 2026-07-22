@@ -1,0 +1,72 @@
+schema_version: 2
+
+# Long continuation of the stabilized +X direction curriculum.
+# 30,720,000 samples = 7,500 PPO iterations with 8 environments and n_steps=512.
+# Based on the preceding local run, the estimated wall time is approximately 11 hours.
+experiment:
+  name: ppo_plane_curriculum_x_kl_long
+  seed: 42
+  output_dir: runs/ppo_plane_curriculum_x_long
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/forward/04_target_kl_stabilization/final_model.zip
+  vecnormalize_path: policies/path_tracking/forward/04_target_kl_stabilization/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 30720000
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

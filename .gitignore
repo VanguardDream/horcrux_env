@@ -179,6 +179,15 @@ pyrightconfig.json
 /runs/
 events.out.tfevents.*
 
+# Curated policy binaries (keep history/config text trackable)
+/policies/**/*.zip
+/policies/**/*.pkl
+/policies/**/evaluations.npz
+/policies/**/checkpoints/
+/policies/**/monitor/
+/policies/**/tensorboard/
+/policies/**/videos/
+
 # Local AI agent instructions and workspace state
 /AGENTS.md
 /.agents/

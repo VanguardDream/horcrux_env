@@ -1,0 +1,76 @@
+schema_version: 2
+
+# First leftward (+Y) gait curriculum stage.
+# The Gymnasium environment is unchanged; gait and target command are constructor
+# kwargs. The resume statistics preserve forward sensor statistics but make the
+# last three joystick observation dimensions pass at a natural unit scale.
+experiment:
+  name: ppo_plane_curriculum_left_gait_finetune
+  seed: 42
+  output_dir: runs/ppo_plane_curriculum_left_finetune
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [0.0, 1.0, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 45]
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/forward/05_forward_x_long/evaluation/best_model.zip
+  vecnormalize_path: policies/path_tracking/left/00_aborted_transfer_diagnostic/seed_from_forward_best_vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# Distribution-shift diagnostic before a long leftward run.
+training:
+  total_timesteps: 1048576
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

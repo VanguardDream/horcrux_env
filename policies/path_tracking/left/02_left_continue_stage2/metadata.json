@@ -1,0 +1,13 @@
+{
+  "started_at": "2026-07-20T07:25:47.876564+00:00",
+  "git_revision": "c87d53d8dbb1533c52700f1dca921390139ae534",
+  "python": "3.11.15",
+  "platform": "Windows-10-10.0.26100-SP0",
+  "packages": {
+    "horcrux_env": "0.0.1",
+    "gymnasium": "1.3.0",
+    "mujoco": "3.10.0",
+    "stable-baselines3": "2.9.0",
+    "torch": "2.13.0+cu132"
+  }
+}

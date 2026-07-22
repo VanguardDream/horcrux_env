@@ -1,0 +1,87 @@
+schema_version: 2
+
+# ABANDONED transfer-continuation plan. The diagnostic was intentionally stopped
+# before final artifacts were created, so this configuration is retained only as
+# history and cannot be resumed as-is. The successful left policy was trained from
+# scratch using ppo_plane_left_from_scratch_long.yaml.
+experiment:
+  name: ppo_plane_curriculum_left_initial_long
+  seed: 42
+  output_dir: runs/ppo_plane_curriculum_left_initial_long
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [0.0, 1.0, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 45]
+
+    # Directional reward remains identical to forward training. A stronger yaw
+    # pose cost discourages solving +Y by turning 90 degrees and moving forward.
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/left/00_aborted_transfer_diagnostic/final_model.zip
+  vecnormalize_path: policies/path_tracking/left/00_aborted_transfer_diagnostic/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# 6,937 iterations * (512 steps * 8 environments) = 28,413,952.
+# Estimated from the measured forward throughput: approximately 10 hours.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

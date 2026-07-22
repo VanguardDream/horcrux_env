@@ -1,0 +1,250 @@
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 좌측(+Y) 게걸음
+======================================================
+
+정리일: 2026-07-22
+환경: horcrux_env/plane-v0
+프레임워크: Stable-Baselines3 PPO
+목표: 몸체의 전진 자세를 유지하면서 로봇 기준 좌측(+Y)으로 이동
+joy_input: [0.0, 1.0, 0.0]
+gait_params: [30, 30, 40, 40, 45]
+rotation_norm_cost_weight: 10.0
+
+
+1. 현재 권장 좌측 정책
+----------------------
+
+대표 run:
+  03_left_continue_stage3
+
+배포 권장 조합:
+  03_left_continue_stage3/evaluation/best_model.zip
+  03_left_continue_stage3/evaluation/best_model_vecnormalize.pkl
+
+최고 평가 리턴:
+  273,699.656321 @ cumulative timestep 82,327,904
+
+마지막까지 학습된 조합:
+  03_left_continue_stage3/final_model.zip
+  03_left_continue_stage3/vecnormalize.pkl
+
+마지막 평가 리턴:
+  272,595.061756 @ evaluation timestep 85,077,904
+
+주의:
+  evaluation/best_model.zip에는 evaluation/best_model_vecnormalize.pkl을 사용한다.
+  final_model.zip에는 같은 run 루트의 vecnormalize.pkl을 사용한다.
+  서로 다른 단계 또는 best/final 사이의 정규화 통계를 섞지 않는다.
+
+
+2. 보관 구조와 정책 계보
+-----------------------
+
+00_aborted_transfer_diagnostic/   전진 정책을 이용한 전이 실험, 의도적으로 중단
+01_left_from_scratch_long/         새 정책과 새 VecNormalize로 시작한 좌측 Stage 1
+02_left_continue_stage2/           01 final에서 연속 학습
+03_left_continue_stage3/           02 final에서 안정화 연속 학습
+
+성공한 정책 계보:
+
+  01_left_from_scratch_long/final
+    -> 02_left_continue_stage2/final
+    -> 03_left_continue_stage3/best 또는 final
+
+00은 성공 계보에 포함되지 않는다. 각 화살표는 왼쪽 run의 final_model.zip과
+같은 run의 vecnormalize.pkl을 함께 불러와 reset_num_timesteps=False로 추가
+학습했음을 의미한다.
+
+각 번호 디렉터리는 정책만 추출한 복사본이 아니라 원래의 timestamped run 전체를
+runs/에서 이동한 것이다. 모델, 정규화 통계, 평가, 체크포인트, 영상, TensorBoard,
+monitor CSV, resolved config, metadata를 모두 보존한다.
+
+
+3. 단계별 학습 이력
+-------------------
+
+[00] 00_aborted_transfer_diagnostic
+
+이동 전 run:
+  runs/ppo_plane_curriculum_left_finetune/
+    20260718-202216-018576_ppo_plane_curriculum_left_gait_finetune
+
+목적:
+  전진 최고 정책을 좌측 gait로 전이할 수 있는지 진단.
+
+설정:
+  - 시작 정책: forward/05_forward_x_long/evaluation/best_model.zip
+  - joy_input: [0, 1, 0]
+  - gait_params: [30, 30, 40, 40, 45]
+  - learning_rate: 0.00005
+  - n_epochs: 2
+  - target_kl: 0.04
+  - 전진 센서 통계를 보존하고 joy 차원 mean=0, variance=1로 조정한 seed 통계 사용
+
+종료 상태:
+  - 사용자가 다른 정책을 참고하지 않는 신규 정책 학습을 선택하여 의도적으로 중단
+  - final_model.zip과 vecnormalize.pkl 없음
+  - 마지막 기록 timestep: 46,277,296
+  - 최고 진단 평가 리턴: -439.607371 @ 46,165,296
+  - 마지막 y_velocity: 0.015797
+  - 마지막 direction_similarity: -0.518847
+
+보존 이유:
+  실패/중단 전이 방법과 정규화 조정의 근거를 추적하기 위한 실험 기록이다.
+  seed_from_forward_best_vecnormalize.pkl도 이 디렉터리에 함께 보존한다.
+
+
+[01] 01_left_from_scratch_long
+
+이동 전 run:
+  runs/ppo_plane_left_from_scratch_long/
+    20260718-203226-841518_ppo_plane_left_from_scratch_long
+
+시작점:
+  - 이전 정책 없음: 새 MlpPolicy와 새 optimizer
+  - 이전 통계 없음: 새 VecNormalize
+
+주요 설정:
+  - learning_rate: 0.0001
+  - n_epochs: 2
+  - target_kl: 0.04
+  - 추가/최종 timestep: 28,413,952
+  - rotation_norm_cost_weight: 10.0
+
+변경 이유:
+  전진 정책의 편향과 고정 joy 정규화 문제를 피하고 좌측 전용 정책을 처음부터 학습.
+  yaw 자세 비용을 높여 몸을 90도 돌린 뒤 전진하는 해법 대신 게걸음을 유도.
+
+결과:
+  - 최고 평가 리턴: 173,122.943209 @ 27,100,000
+  - 마지막 평가 리턴: 171,950.011001 @ 28,400,000
+  - 최근 y_velocity: 0.485061
+  - 최근 x_velocity: 0.005066
+  - 최근 direction_similarity: 0.782264
+  - 최근 abs_com_yaw_deg: 7.670149
+  - 최근 KL 평균: 0.005194
+  - 최근 clip fraction: 0.032360
+
+판단:
+  실제 좌측 게걸음을 학습하는 데 성공했다. 01 final을 Stage 2 시작점으로 사용했다.
+
+
+[02] 02_left_continue_stage2
+
+이동 전 run:
+  runs/ppo_plane_left_continue_stage2/
+    20260720-162547-873560_ppo_plane_left_continue_stage2
+
+시작점:
+  01_left_from_scratch_long/final_model.zip + vecnormalize.pkl
+
+주요 변경:
+  - learning_rate: 0.0001 유지
+  - n_epochs: 2 -> 3
+  - target_kl: 0.04 유지
+  - 추가 timestep: 28,413,952
+  - 최종 누적 timestep: 56,827,904
+  - 평가 250,000, 체크포인트 500,000, 영상 200 iteration 주기
+
+변경 이유:
+  Stage 1 말기의 KL과 clipping이 매우 낮아 rollout당 optimizer update를 늘림.
+
+결과:
+  - 최고 평가 리턴: 258,761.273208 @ 56,413,952
+  - 마지막 평가 리턴: 257,821.552624 @ 56,663,952
+  - 최근 y_velocity: 0.656241
+  - 최근 x_velocity: 0.003649
+  - 최근 direction_similarity: 0.870781
+  - 최근 abs_com_yaw_deg: 5.398471
+  - 최근 rollout return: 247,483.235313
+  - 최근 KL 평균: 0.049869
+  - 최근 clip fraction: 0.370175
+  - 마지막 policy std: 0.431570
+
+판단:
+  성능은 크게 향상됐지만 말기에 KL과 clipping이 상승했다. 02 final을 Stage 3
+  시작점으로 사용하고 optimizer를 다시 보수적으로 낮췄다.
+
+
+[03] 03_left_continue_stage3
+
+이동 전 run:
+  runs/ppo_plane_left_continue_stage3/
+    20260721-110816-557679_ppo_plane_left_continue_stage3
+
+시작점:
+  02_left_continue_stage2/final_model.zip + vecnormalize.pkl
+
+주요 변경:
+  - learning_rate: 0.0001 -> 0.00005
+  - n_epochs: 3 -> 2
+  - target_kl: 0.04 유지
+  - 추가 timestep: 28,413,952
+  - 최종 누적 timestep: 85,241,856
+  - 환경, gait, reward, 저장 주기는 Stage 2와 동일
+
+변경 이유:
+  Stage 2 말기의 큰 정책 업데이트를 줄이면서 이미 획득한 gait를 안정적으로 개선.
+
+결과:
+  - 최고 평가 리턴: 273,699.656321 @ 82,327,904
+  - 마지막 평가 리턴: 272,595.061756 @ 85,077,904
+  - 최근 y_velocity: 0.683024
+  - 최근 x_velocity: 0.006656
+  - 최근 direction_similarity: 0.881682
+  - 최근 abs_com_yaw_deg: 4.915090
+  - 최근 rollout return: 264,923.715313
+  - explained variance: 0.861288
+  - 최근 KL 평균: 0.036465
+  - 최근 clip fraction: 0.304808
+  - 마지막 policy std: 0.356194
+
+판단:
+  Stage 2 대비 최고 평가 리턴을 약 5.8% 개선하면서 KL과 clipping을 낮췄다.
+  현재 좌측 방향의 대표 정책은 03 evaluation/best 조합이다.
+
+
+4. 각 run 디렉터리의 파일 의미
+--------------------------------
+
+evaluation/best_model.zip:
+  해당 run에서 가장 높은 평균 평가 리턴을 기록한 정책.
+
+evaluation/best_model_vecnormalize.pkl:
+  best_model.zip 저장 시점의 observation 정규화 통계.
+
+evaluation/evaluations.npz:
+  평가 timestep, episode return, episode length 원본 기록.
+
+final_model.zip + vecnormalize.pkl:
+  run의 마지막 정책과 그 시점의 observation 정규화 통계.
+
+checkpoints/:
+  주기별 정책 ZIP과 각 시점의 VecNormalize PKL.
+
+videos/:
+  학습 중 callback으로 녹화한 정책 실행 영상.
+
+tensorboard/:
+  PPO, rollout, 속도, 방향, yaw, 보상 지표의 TensorBoard 이벤트.
+
+monitor/:
+  8개 병렬 환경의 episode monitor CSV.
+
+resolved_config.yaml / metadata.json:
+  실제 실행 설정과 실행 시점의 Git/Python/패키지 정보. resolved_config 내부의
+  resume 경로는 학습 당시 경로를 역사 기록으로 보존하므로 이동 후 경로와 다를 수 있다.
+
+
+5. 확인 명령
+------------
+
+전체 좌측 학습 로그:
+  tensorboard --logdir .\policies\path_tracking\left --port 6006
+
+대표 정책 평가 예시:
+  python training/evaluate.py `
+    .\policies\path_tracking\left\03_left_continue_stage3\evaluation\best_model.zip `
+    --vecnormalize .\policies\path_tracking\left\03_left_continue_stage3\evaluation\best_model_vecnormalize.pkl
+
+결정론적 평가 episode가 같은 초기 조건과 seed를 사용하면 결과가 거의 동일할 수 있다.
+현재 성능 수치는 학습 비교에는 유효하지만 강건성·일반화까지 증명하지는 않는다.

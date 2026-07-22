@@ -110,6 +110,18 @@ Smoke 결과는 `runs/smoke/`에 저장됩니다. Smoke 학습 성공은 정책 
 python training/train.py --config training/configs/ppo_plane.yaml
 ```
 
+기존 모델과 observation 통계를 이어서 학습하려면 resume 설정이 포함된
+fine-tune 프로필을 사용합니다. `training.total_timesteps`는 이 경우 기존
+timestep을 포함한 총량이 아니라 추가로 학습할 timestep입니다.
+
+```powershell
+python training/train.py --config training/configs/ppo_plane_finetune.yaml
+```
+
+resume 모델의 `n_steps`, `batch_size`, `gamma`는 저장 모델과 같아야 합니다.
+`learning_rate`와 `n_epochs`는 fine-tune 설정으로 덮어쓸 수 있으며, 누적
+timestep은 TensorBoard와 체크포인트 이름에서 계속 유지됩니다.
+
 YAML을 수정하지 않고 일부 값을 덮어쓸 수도 있습니다.
 
 ```powershell

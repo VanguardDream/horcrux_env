@@ -17,6 +17,7 @@ import yaml
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import FloatSchedule
 from stable_baselines3.common.vec_env import (
     DummyVecEnv,
     SubprocVecEnv,
@@ -64,6 +65,16 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         help="Override experiment.output_dir.",
+    )
+    parser.add_argument(
+        "--resume-model",
+        type=Path,
+        help="Continue training from an SB3 PPO .zip model.",
+    )
+    parser.add_argument(
+        "--resume-vecnormalize",
+        type=Path,
+        help="VecNormalize .pkl paired with --resume-model.",
     )
     return parser.parse_args()
 
@@ -128,6 +139,20 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ValueError(
             "The 'action_normalization' configuration section must be a mapping."
         )
+
+    resume = config.get("resume")
+    if resume is not None:
+        if not isinstance(resume, dict):
+            raise ValueError("The 'resume' configuration section must be a mapping.")
+        if not resume.get("model_path"):
+            raise ValueError("resume.model_path is required when resuming training.")
+        if observation_normalization_enabled(config) and not resume.get(
+            "vecnormalize_path"
+        ):
+            raise ValueError(
+                "resume.vecnormalize_path is required when observation normalization "
+                "is enabled."
+            )
     return config
 
 
@@ -143,6 +168,23 @@ def apply_overrides(config: dict[str, Any], args: argparse.Namespace) -> dict[st
         resolved["training"]["total_timesteps"] = args.total_timesteps
     if args.output_dir is not None:
         resolved["experiment"]["output_dir"] = str(args.output_dir)
+    if args.resume_model is not None:
+        resolved.setdefault("resume", {})["model_path"] = str(args.resume_model)
+    if args.resume_vecnormalize is not None:
+        resolved.setdefault("resume", {})["vecnormalize_path"] = str(
+            args.resume_vecnormalize
+        )
+    resume = resolved.get("resume")
+    if resume:
+        if not resume.get("model_path"):
+            raise ValueError("A resume model path is required.")
+        if observation_normalization_enabled(resolved) and not resume.get(
+            "vecnormalize_path"
+        ):
+            raise ValueError(
+                "A resume VecNormalize path is required when observation "
+                "normalization is enabled."
+            )
     return resolved
 
 
@@ -225,6 +267,26 @@ def wrap_with_observation_normalization(
         clip_obs=float(normalization.get("clip_obs", 10.0)),
         epsilon=float(normalization.get("epsilon", 1e-8)),
     )
+
+
+def restore_or_create_observation_normalization(
+    env: VecEnv,
+    config: dict[str, Any],
+) -> VecEnv:
+    resume = config.get("resume")
+    if not resume or not observation_normalization_enabled(config):
+        return wrap_with_observation_normalization(env, config, training=True)
+
+    statistics_path = resolve_path(str(resume["vecnormalize_path"])).resolve()
+    if not statistics_path.is_file():
+        raise FileNotFoundError(
+            f"Resume VecNormalize statistics not found: {statistics_path}"
+        )
+    normalized_env = VecNormalize.load(statistics_path, env)
+    normalized_env.training = True
+    normalized_env.norm_obs = True
+    normalized_env.norm_reward = False
+    return normalized_env
 
 
 def save_observation_statistics(env: VecEnv, path: Path) -> None:
@@ -313,11 +375,7 @@ def main() -> None:
     model = None
     try:
         train_env, num_envs = build_training_env(config, run_dir, seed)
-        train_env = wrap_with_observation_normalization(
-            train_env,
-            config,
-            training=True,
-        )
+        train_env = restore_or_create_observation_normalization(train_env, config)
 
         callbacks = [InfoMetricsCallback()]
         checkpointing = config.get("checkpointing", {})
@@ -389,20 +447,67 @@ def main() -> None:
                 )
             )
 
-        model = PPO(
-            algorithm.get("policy", "MlpPolicy"),
-            train_env,
-            seed=seed,
-            device=algorithm.get("device", "auto"),
-            policy_kwargs=build_policy_kwargs(config),
-            tensorboard_log=str(run_dir / "tensorboard"),
-            verbose=1,
-            **algorithm.get("kwargs", {}),
-        )
+        resume = config.get("resume")
+        if resume:
+            model_path = resolve_path(str(resume["model_path"])).resolve()
+            if not model_path.is_file():
+                raise FileNotFoundError(f"Resume model not found: {model_path}")
+            model = PPO.load(
+                model_path,
+                env=train_env,
+                device=algorithm.get("device", "auto"),
+            )
+
+            ppo_kwargs = algorithm.get("kwargs", {})
+            immutable_settings = {
+                "n_steps": int(ppo_kwargs.get("n_steps", model.n_steps)),
+                "batch_size": int(ppo_kwargs.get("batch_size", model.batch_size)),
+                "gamma": float(ppo_kwargs.get("gamma", model.gamma)),
+            }
+            for name, expected in immutable_settings.items():
+                actual = getattr(model, name)
+                if actual != expected:
+                    raise ValueError(
+                        f"Resume setting '{name}' must match the saved model "
+                        f"(saved={actual}, config={expected})."
+                    )
+
+            learning_rate = float(
+                ppo_kwargs.get("learning_rate", model.learning_rate)
+            )
+            model.learning_rate = learning_rate
+            model.lr_schedule = FloatSchedule(learning_rate)
+            model.n_epochs = int(ppo_kwargs.get("n_epochs", model.n_epochs))
+            if "target_kl" in ppo_kwargs:
+                target_kl = ppo_kwargs["target_kl"]
+                model.target_kl = (
+                    None if target_kl is None else float(target_kl)
+                )
+            model.tensorboard_log = str(run_dir / "tensorboard")
+            model.verbose = 1
+        else:
+            model = PPO(
+                algorithm.get("policy", "MlpPolicy"),
+                train_env,
+                seed=seed,
+                device=algorithm.get("device", "auto"),
+                policy_kwargs=build_policy_kwargs(config),
+                tensorboard_log=str(run_dir / "tensorboard"),
+                verbose=1,
+                **algorithm.get("kwargs", {}),
+            )
 
         print(f"Configuration: {args.config.resolve()}")
         print(f"Run directory: {run_dir}")
         print(f"Training device: {model.device}")
+        if resume:
+            print(f"Resume model: {model_path}")
+            print(f"Starting timestep: {model.num_timesteps}")
+            print(
+                "Fine-tune optimizer: "
+                f"learning_rate={model.learning_rate}, n_epochs={model.n_epochs}, "
+                f"target_kl={model.target_kl}"
+            )
         print(f"Vectorized environments: {num_envs} ({type(train_env).__name__})")
         print(
             "Samples per PPO iteration: "
@@ -421,6 +526,7 @@ def main() -> None:
             total_timesteps=int(config["training"]["total_timesteps"]),
             callback=CallbackList(callbacks),
             tb_log_name=experiment["name"],
+            reset_num_timesteps=not bool(resume),
         )
         model.save(run_dir / "final_model")
         save_observation_statistics(train_env, run_dir / "vecnormalize.pkl")

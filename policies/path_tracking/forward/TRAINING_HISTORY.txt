@@ -1,0 +1,266 @@
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 전진 방향
+==================================================
+
+작성일: 2026-07-18
+환경: horcrux_env/plane-v0
+정책 프레임워크: Stable-Baselines3 PPO
+목적: 뱀 로봇 경로 추종에서 로봇 기준 전진(+X) 명령을 수행하는 정책 보관
+명령 벡터: joy_input = [1.0, 0.0, 0.0]
+
+보관 방식:
+  2026-07-18에 아래 5개의 원본 run 디렉터리를 runs/에서 이 폴더로 이동했다.
+  각 단계는 정책만 추출한 복사본이 아니라 영상, TensorBoard 이벤트, monitor,
+  체크포인트, 평가 기록과 실행 설정을 모두 포함하는 완전한 학습 run이다.
+  아래에 적힌 runs/... 경로는 이동 전 원래 위치를 나타내는 역사 기록이다.
+
+
+1. 현재 권장 전진 정책
+----------------------
+
+디렉터리:
+  05_forward_x_long
+
+평가 성능이 가장 높은 배포용 조합:
+  05_forward_x_long/evaluation/best_model.zip
+  05_forward_x_long/evaluation/best_model_vecnormalize.pkl
+
+최고 평가 리턴:
+  208,913.447632 (누적 timestep 45,765,296)
+
+마지막까지 학습된 조합:
+  05_forward_x_long/final_model.zip
+  05_forward_x_long/vecnormalize.pkl
+
+마지막 평가 리턴:
+  208,703.244596 (평가 timestep 47,565,296)
+
+주의:
+  모델 ZIP과 VecNormalize PKL은 반드시 같은 이름 계열의 파일끼리 사용한다.
+  evaluation/best_model.zip에는 evaluation/best_model_vecnormalize.pkl을 사용한다.
+  final_model.zip에는 같은 단계 루트의 vecnormalize.pkl을 사용한다.
+  서로 다른 단계 또는 best/final 사이의 통계 파일을 섞지 않는다.
+
+
+2. 정책 계보
+------------
+
+01_initial_sb3_baseline/best
+  -> 02_lower_lr_epoch_finetune/final
+  -> 03_lower_lr_epoch_long/final
+  -> 04_target_kl_stabilization/final
+  -> 05_forward_x_long/best 또는 final
+
+각 화살표는 왼쪽 정책과 그에 대응하는 VecNormalize 통계를 불러와
+오른쪽 단계에서 reset_num_timesteps=False로 추가 학습했음을 의미한다.
+기본 Gymnasium 환경은 원시 observation과 물리 action 공간을 유지했다.
+학습에서는 SB3 VecNormalize로 observation을 정규화하고, action wrapper로
+정책의 [-1, 1] 출력을 물리 action [0, 2.7]로 변환했다.
+
+
+3. 단계별 변경 이력
+-------------------
+
+[01] 01_initial_sb3_baseline
+
+원본 run:
+  runs/ppo_plane/20260716-113839-721175_ppo_plane_baseline
+
+학습 내용:
+  - SB3 PPO의 첫 본 학습
+  - 추가 timestep: 7,864,320
+  - learning_rate: 0.0003
+  - n_epochs: 5
+  - n_steps: 512, batch_size: 512, gamma: 0.95
+  - 8개 SubprocVecEnv
+  - network: [512, 512, 512, 512, 512], tanh
+  - observation/action normalization 사용
+
+결과:
+  - 최고 평가 리턴: 183,653.853900 @ 7,850,000
+  - 마지막 평가 리턴: 182,642.686237
+  - 최근 KL 평균: 0.172709
+  - 최대 KL: 3.802117
+  - 최근 clip fraction: 0.588025
+
+다음 단계로 넘어간 이유:
+  정책 성능은 높아졌지만 KL과 clip fraction이 매우 높아 PPO 업데이트가
+  불안정했다. 이 단계의 final이 아니라 evaluation/best 정책을 02의 시작점으로 사용했다.
+
+
+[02] 02_lower_lr_epoch_finetune
+
+원본 run:
+  runs/ppo_plane_finetune/20260717-133032-688755_ppo_plane_kl_finetune
+
+시작 정책:
+  01_initial_sb3_baseline/evaluation/best_model.zip
+  01_initial_sb3_baseline/evaluation/best_model_vecnormalize.pkl
+
+변경 내용:
+  - learning_rate: 0.0003 -> 0.0001
+  - n_epochs: 5 -> 3
+  - 다른 PPO 및 환경 설정은 유지
+  - 안정성 확인을 위한 짧은 추가 학습: 100,000 요청
+  - rollout 단위 처리 후 최종 누적 timestep: 7,952,400
+
+결과:
+  - 평가 리턴: 183,204.100331 @ 7,950,000
+  - KL 평균: 0.039144
+  - 최대 KL: 0.062281
+  - clip fraction 평균: 0.318912
+
+판단:
+  성능을 유지하면서 KL을 크게 낮추는 데 성공했다. 02 final을 03의 시작점으로 사용했다.
+
+
+[03] 03_lower_lr_epoch_long
+
+원본 run:
+  runs/ppo_plane_finetune_continued/20260717-133728-753405_ppo_plane_kl_continued
+
+시작 정책:
+  02_lower_lr_epoch_finetune/final_model.zip
+  02_lower_lr_epoch_finetune/vecnormalize.pkl
+
+학습 내용:
+  - learning_rate: 0.0001
+  - n_epochs: 3
+  - 추가 timestep: 7,864,320
+  - 최종 누적 timestep: 15,816,720
+
+결과:
+  - 최고 평가 리턴: 197,240.874894 @ 15,052,400
+  - 마지막 평가 리턴: 196,728.894275
+  - 최근 KL 평균: 0.071433
+  - 최대 KL: 0.140089
+  - 최근 clip fraction: 0.442259
+  - 최근 x 속도: 0.494740
+  - 최근 방향 유사도: 0.826953
+
+다음 단계로 넘어간 이유:
+  정책 성능은 개선됐지만 장기 학습에서 KL과 clip fraction이 다시 상승했다.
+  03 final을 사용해 더 보수적인 optimizer 설정을 시험했다.
+
+
+[04] 04_target_kl_stabilization
+
+원본 run:
+  runs/ppo_plane_curriculum_x_finetune/20260717-180854-075721_ppo_plane_curriculum_x_kl_finetune
+
+시작 정책:
+  03_lower_lr_epoch_long/final_model.zip
+  03_lower_lr_epoch_long/vecnormalize.pkl
+
+변경 내용:
+  - learning_rate: 0.0001 -> 0.00005
+  - n_epochs: 3 -> 2
+  - target_kl: None -> 0.04
+  - 추가 timestep: 1,048,576 (256 PPO iterations)
+  - 최종 누적 timestep: 16,865,296
+
+결과:
+  - 최고 평가 리턴: 199,391.464849 @ 16,516,720
+  - 마지막 평가 리턴: 198,293.536758
+  - 최근 KL 평균: 0.030474
+  - 최대 KL: 0.041635
+  - 최근 clip fraction: 0.243936
+  - 최근 x 속도: 0.498297
+  - 최근 방향 유사도: 0.828515
+
+판단:
+  KL과 clip fraction을 낮추면서 성능도 개선됐다. 이 하이퍼파라미터를 전진
+  방향 장기 학습의 기본 설정으로 확정하고 04 final을 05의 시작점으로 사용했다.
+
+
+[05] 05_forward_x_long
+
+원본 run:
+  runs/ppo_plane_curriculum_x_long/20260717-200051-649599_ppo_plane_curriculum_x_kl_long
+
+시작 정책:
+  04_target_kl_stabilization/final_model.zip
+  04_target_kl_stabilization/vecnormalize.pkl
+
+학습 내용:
+  - learning_rate: 0.00005
+  - n_epochs: 2
+  - target_kl: 0.04
+  - 추가 timestep: 30,720,000 (7,500 PPO iterations)
+  - 최종 누적 timestep: 47,585,296
+  - 실제 학습 시간: 약 10시간 49분
+
+결과:
+  - 최고 평가 리턴: 208,913.447632 @ 45,765,296
+  - 마지막 평가 리턴: 208,703.244596
+  - 최근 KL 평균: 0.052615
+  - 최대 KL: 0.175659 (드문 단일 이상치 포함)
+  - 최근 clip fraction: 0.321181
+  - 최근 rollout return: 202,777.086
+  - 최근 x 속도: 0.518728
+  - 최근 방향 유사도: 0.839605
+
+판단:
+  현재 전진 방향의 최고 정책이다. 배포와 다른 방향 커리큘럼의 시작점에는
+  05 best 정책을 우선 사용한다. 같은 +X 방향으로 더 오래 학습하기보다는
+  방향 커리큘럼을 확장하는 편이 유리하다.
+
+
+4. 각 단계 디렉터리의 실제 run 구조
+-----------------------------------
+
+evaluation/best_model.zip:
+  해당 run의 evaluation에서 가장 높은 평균 리턴을 기록한 정책.
+
+evaluation/best_model_vecnormalize.pkl:
+  evaluation/best_model.zip이 저장된 시점의 observation 정규화 통계.
+
+evaluation/evaluations.npz:
+  평가 timestep, episode return, episode length 원본 기록.
+
+final_model.zip + vecnormalize.pkl:
+  해당 run의 마지막 timestep 정책과 observation 정규화 통계.
+
+checkpoints/:
+  주기별 정책 ZIP과 각 시점의 VecNormalize PKL.
+
+videos/:
+  학습 도중 callback으로 녹화한 정책 실행 영상.
+
+tensorboard/:
+  PPO, rollout, 환경 지표를 포함한 TensorBoard 이벤트 로그.
+
+monitor/:
+  8개 병렬 환경의 episode monitor CSV.
+
+resolved_config.yaml:
+  실제 학습 실행 시 확정된 전체 설정. 내부 resume 경로는 이동 전 경로를 보존한다.
+
+metadata.json:
+  실행 시각, Git revision, Python 및 주요 패키지 버전.
+
+
+5. 다른 방향 정책을 모을 때의 디렉터리 규칙
+------------------------------------------------
+
+권장 루트 구조:
+  policies/path_tracking/forward/
+  policies/path_tracking/backward/
+  policies/path_tracking/left/
+  policies/path_tracking/right/
+  policies/path_tracking/diagonal_left/
+  policies/path_tracking/diagonal_right/
+
+각 방향 폴더 안에서는 이 폴더와 동일하게 01, 02, 03 순번으로 학습 단계를
+저장한다. TRAINING_HISTORY.txt 첫 부분에 다음 정보를 반드시 기록한다.
+
+  - joy_input 방향 벡터
+  - 시작 모델과 VecNormalize 통계
+  - 변경한 hyperparameter
+  - 추가/누적 timestep
+  - 최고 및 마지막 평가 리턴
+  - KL 평균/최댓값과 clip fraction
+  - 다음 단계가 best 또는 final 중 어느 정책에서 시작했는지
+
+전진에서 다른 방향으로 전환할 때는 급격히 반대 방향으로 바꾸기보다
+전진 -> 대각선 -> 측면 또는 후진과 같이 방향 벡터를 단계적으로 변경하는
+커리큘럼을 권장한다.
