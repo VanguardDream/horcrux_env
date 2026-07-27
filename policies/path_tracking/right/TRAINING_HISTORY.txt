@@ -1,0 +1,46 @@
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 우측(-Y) 게걸음
+======================================================
+
+작성일: 2026-07-22
+환경: horcrux_env/plane-v0
+프레임워크: Stable-Baselines3 PPO
+목표: 몸체의 전진 자세를 유지하면서 로봇 기준 우측(-Y)으로 이동
+
+권장 초기 gait:
+  joy_input: [0.0, -1.0, 0.0]
+  gait_params: [30, 30, 40, 40, -45]
+
+선정 근거:
+  좌측 성공 gait의 phase delta=+45도를 좌우 대칭인 -45도로 반전했다.
+  plane_v3.py의 방향별 gait 주석도 [0,-1] 목표에 delta=-45를 대응시킨다.
+  공간/시간 파라미터 [30,30,40,40]은 좌측에서 검증된 값을 유지해 phase만
+  바꾼 효과를 비교할 수 있도록 했다.
+
+[01] 우측 신규 정책 장기 학습 준비
+  설정: training/configs/ppo_plane_right_from_scratch_long.yaml
+  시작 정책: 없음 (새 MlpPolicy와 새 optimizer)
+  시작 VecNormalize: 없음 (새 통계)
+  learning_rate: 0.0001
+  gamma: 0.95
+  n_steps: 512
+  batch_size: 512
+  n_epochs: 2
+  target_kl: 0.04
+  network: [512,512,512,512,512], tanh
+  rotation_norm_cost_weight: 10.0
+  추가 timestep: 28,413,952 (약 8~10시간)
+  시작 시각: 2026-07-22 23:22 (Asia/Seoul)
+  실행 run: runs/ppo_plane_right_from_scratch_long/
+    20260722-232233-183924_ppo_plane_right_from_scratch_long
+  상태: 학습 진행 중
+
+검증할 핵심 지표:
+  - env/y_velocity가 음수 방향으로 증가하는가
+  - env/x_velocity가 0 부근을 유지하는가
+  - env/direction_similarity가 양수로 상승하는가
+  - env/abs_com_yaw_deg가 감소해 몸을 돌리지 않는 게걸음이 되는가
+  - train/approx_kl, train/clip_fraction, train/std가 안정적인가
+  - evaluation/mean_reward가 지속적으로 개선되는가
+
+완료 후 timestamped run 전체를 이 폴더 아래 01_right_from_scratch_long으로
+이동하고, best/final 모델과 정규화 통계의 짝 및 실제 성능을 기록한다.

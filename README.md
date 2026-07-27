@@ -221,6 +221,43 @@ The `info` dictionary returned by the `step()` method contains the following inf
 - `rotation_alignment`: Rotation alignment (-1 or 1)
 - `velocity_theta`: Velocity direction angle
 
+### PlaneDirectTorqueWorld (`horcrux_env/plane-direct-torque-v0`)
+
+An ablation environment that keeps the same MuJoCo model, target command,
+reward, termination, reset, filtering, and rendering logic as `plane-v0`, but
+removes gait decomposition from the control path.
+
+- Observation: `Box(-inf, inf, shape=(83,))`
+  - 80 MuJoCo sensor values
+  - 3 target-command values
+  - no 14-dimensional gait motion vector
+- Action: `Box(torque_min, torque_max, shape=(14,))`
+  - each action is sent directly to the corresponding MuJoCo actuator
+  - defaults: `torque_min=-2.7`, `torque_max=2.7`
+- `info` omits `motion_vector`, `gait_params`, and `motionMatrix`.
+
+The default torque range matches the original environment's maximum effective
+torque magnitude. The MJCF actuator limit is `[-3.0, 3.0]`; the environment
+rejects requested bounds outside that range.
+
+```python
+import gymnasium as gym
+import horcrux_env
+
+env = gym.make(
+    "horcrux_env/plane-direct-torque-v0",
+    torque_min=-2.7,
+    torque_max=2.7,
+    joy_input_random=False,
+    joy_input=(-1.0, 0.0, 0.0),
+)
+observation, info = env.reset(seed=42)
+```
+
+For SB3, the existing `NormalizeAction` wrapper maps policy actions from
+`[-1, 1]` to the configured torque interval. With the symmetric default range,
+a normalized action of zero produces zero physical torque.
+
 ## Wrappers
 
 Several wrapper classes are provided to modify or extend the environment.

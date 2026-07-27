@@ -371,9 +371,12 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             return is_done
     
     def control_cost(self, action):
-         control_cost = self._ctrl_cost_weight * np.sum(action)
+         control_cost = self._ctrl_cost_weight * self._control_effort(action)
          return control_cost
-    
+
+    def _control_effort(self, action: np.ndarray) -> float:
+        """Return the non-negative action magnitude used by this environment."""
+        return float(np.sum(action))
 
     def straightness_cost(self, p0: np.ndarray, pt: np.ndarray, direction: np.ndarray, weight: float = 1.0) -> float:
         """
@@ -402,7 +405,21 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
         
         return cost
 
-            
+    def _action_to_control(self, action: np.ndarray) -> np.ndarray:
+        """Apply the gait decomposition used by the original environment."""
+        return (action * self._motion_vector).copy()
+
+    def _advance_gait(self) -> None:
+        self._k += 1
+        self._motion_vector = self._gait.getMvec(self._k).copy()
+
+    def _get_gait_info(self, observation: np.ndarray) -> dict:
+        return {
+            "motion_vector": observation[-17:-3].copy(),
+            "gait_params": self._gait_params,
+            "motionMatrix": self._gait.getMotionMat().copy(),
+        }
+
     def step(self, action):
         com_pos_before = self.get_robot_com().copy()
         com_rpy_before = self.get_robot_rot().copy()
@@ -414,8 +431,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             self._initial_com = com_pos_before.copy()
             self._initial_head_rpy = Rotation.from_matrix(head_quat_before).as_rotvec(True).copy()
 
-        motion_vector = self._motion_vector.copy()
-        direction_action = (action * motion_vector).copy()
+        direction_action = self._action_to_control(action)
 
         self.do_simulation(direction_action, self.frame_skip)
 
@@ -478,8 +494,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             yaw_vel = tmp_yaw_vel
 
         # ## Gait changing...
-        self._k += 1
-        self._motion_vector = self._gait.getMvec(self._k).copy()
+        self._advance_gait()
         
         observation = self._get_obs(self._motion_vector)
         reward, reward_info = self._get_rew(x_vel, y_vel, self._joy_input[0], self._joy_input[1], action, self._cur_euler_ypr, yaw_vel, self._joy_input[2], com_pos_after[0:2].copy())
@@ -503,7 +518,6 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             "head_quat": observation[-27:-23].copy(),
             "head_ang_vel": observation[-23:-20].copy(),
             "head_lin_acc": observation[-20:-17].copy(),
-            "motion_vector": observation[-17:-3].copy(),
             "joy_input": observation[-3:].copy(),
             "com_pos": com_pos_before,
             "com_ypr": self._cur_euler_ypr,
@@ -511,9 +525,8 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
             "init_rpy": self._initial_rpy,
             "init_com": self._initial_com,
             "init_head_rpy":self._initial_head_rpy,
-            "gait_params": self._gait_params,
             "friction_coeff": self._friction_information,
-            "motionMatrix":self._gait.getMotionMat().copy(),
+            **self._get_gait_info(observation),
             **reward_info,
         }
 
@@ -601,7 +614,7 @@ class PlaneJoyDirWorld(MujocoEnv, utils.EzPickle):
 
         norm_r = np.linalg.norm(np.array([tmp_cur_ypr[0]])).copy() #Roll Pitch 방향 일단 무시
 
-        ctrl_cost = self._ctrl_cost_weight * np.sum(action) * (1 / 30)
+        ctrl_cost = self._ctrl_cost_weight * self._control_effort(action) * (1 / 30)
         unhealthy_cost = self.is_terminated * self._unhealthy_cost_weight
         orientation_cost = self._rotation_norm_cost_weight * norm_r * (1 / 20)
 

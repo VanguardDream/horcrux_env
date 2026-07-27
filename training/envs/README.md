@@ -7,9 +7,11 @@ execution and `SubprocVecEnv` for process-based parallel execution.
 
 When `action_normalization.enabled` is true, the reusable
 `horcrux_env.wrappers.NormalizeAction` wrapper is applied before `Monitor`.
-The base environment keeps its physical `[0, 2.7]` action space while SB3 sees
-a symmetric `[-1, 1]` space. The same wrapper is used for training, evaluation,
-and video recording.
+For `plane-v0`, the base environment keeps its physical `[0, 2.7]` magnitude
+space while SB3 sees a symmetric `[-1, 1]` space. For
+`plane-direct-torque-v0`, it maps the normalized policy space to the configured
+signed torque interval, which defaults to `[-2.7, 2.7]`. The same wrapper is
+used for training, evaluation, and video recording.
 
 Each environment receives `experiment.seed + rank`, and Monitor output is
 written to a separate `monitor/env_NNN.monitor.csv` file. On Windows, use the

@@ -4,3 +4,8 @@ register(
     id="horcrux_env/plane-v0",
     entry_point="horcrux_env.envs:PlaneJoyDirWorld",
 )
+
+register(
+    id="horcrux_env/plane-direct-torque-v0",
+    entry_point="horcrux_env.envs:PlaneDirectTorqueWorld",
+)
