@@ -32,6 +32,15 @@
 
 ---
 
+## 2026-07-22 — conda 환경 초기 설정 스크립트 추가
+
+**커밋:** (미커밋)
+**요청:** 학습 PC를 기존 Windows 머신에서 현재 컴퓨터(zsh, NVIDIA GPU)로 이전. 기존 `horcrux` conda 환경을 삭제 후 재생성하고, 의존성 설치부터 smoke 학습까지 초기 설정을 자동화해달라는 요청.
+**파일:** `scripts/setup_conda_env.sh` (신규 생성)
+**변경:** 환경 삭제→재생성(Python 3.11)→`pip install -e ".[train]"`→CUDA torch 교체(기본 2.13.0+cu132, 환경변수로 변경 가능)→설치 검증→run_env 200스텝 확인→smoke 학습 순으로 수행하는 스크립트 작성. `--cpu`, `--skip-smoke` 옵션 지원.
+
+---
+
 <!-- 이후 Claude가 변경을 가할 때마다 아래 형식으로 항목을 추가합니다.
 
 ## YYYY-MM-DD — 변경 제목
