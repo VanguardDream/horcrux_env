@@ -1,0 +1,104 @@
+schema_version: 2
+
+# Stage 2: continue the recommended backward policy (gaitrev_delta0 Stage 1)
+# for another 28,413,952 timesteps (cumulative 28.4M -> 56.8M).
+#
+# Basis (Stage 1, run 20260723-175850-108983, see
+# policies/path_tracking/backward/TRAINING_HISTORY.txt): best eval return
+# 199,592 at 27.9M steps, final 199,224, x_vel -0.529, dir_sim 0.835,
+# ep_len 6,000. The eval curve was still rising at the end of the run, so
+# there is headroom.
+#
+# LEARNING RATE. Stage 1 used n_epochs 10 with lr decaying linearly
+# 1e-4 -> 0 (the run 3 recipe). train.py rejects a scheduled lr on resume
+# (the schedule would restart from 'initial'), so Stage 2 needs a constant.
+# Unlike right Stage 1 -- whose trust region ended idle and earned an
+# n_epochs raise -- this run's trust region was ACTIVE: 1,680 of 6,937
+# iterations (24%) hit the target_kl 0.04 early stop, with mid-run
+# approx_kl riding at 0.03-0.05. So update intensity stays as-is
+# (n_epochs 10) and lr is fixed at 5e-5: Stage 1's time-average, and the
+# level in effect during the second half of the run where eval climbed
+# 187k -> 199k. target_kl 0.04 remains as the safety cap.
+#
+# Everything environment-side (gait [30,30,40,40,0,-1], joy [-1,0,0],
+# rewards, network) is frozen from Stage 1 so lr is the only change.
+experiment:
+  name: ppo_plane_gaitrev_delta0_stage2
+  seed: 42
+  output_dir: runs/ppo_plane_gaitrev_delta0_stage2
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [-1.0, 0.0, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 0, -1]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/backward/01_gaitrev_delta0_stage1/final_model.zip
+  vecnormalize_path: policies/path_tracking/backward/01_gaitrev_delta0_stage1/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 10
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# Additional samples on top of Stage 1; reset_num_timesteps=False keeps
+# TensorBoard/checkpoint steps cumulative (Stage 2 spans 28.4M -> 56.8M).
+# 6,937 iterations * (512 steps * 8 environments) = 28,413,952.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

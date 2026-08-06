@@ -1,0 +1,80 @@
+schema_version: 2
+experiment:
+  name: ppo_plane_gaitrev_delta0
+  seed: 42
+  output_dir: runs/ppo_plane_gaitrev_delta0
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input:
+    - -1.0
+    - 0.0
+    - 0.0
+    use_gait: true
+    gait_params:
+    - 30
+    - 30
+    - 40
+    - 40
+    - 0
+    - -1
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-08
+action_normalization:
+  enabled: true
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate:
+      schedule: linear
+      initial: 0.0001
+      final: 0.0
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 10
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch:
+    - 512
+    - 512
+    - 512
+    - 512
+    - 512
+    activation_fn: tanh
+training:
+  total_timesteps: 28413952
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+checkpointing:
+  enabled: true
+  save_freq: 250000
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

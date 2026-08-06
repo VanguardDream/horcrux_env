@@ -1,0 +1,75 @@
+schema_version: 2
+
+# GD control group (direct torque), forward (+X), stage 4 of 5.
+#
+# Mirrors policies/path_tracking/forward/04_target_kl_stabilization
+# (config: ppo_plane_curriculum_x_finetune.yaml): lr 1e-4 -> 5e-5,
+# n_epochs 3 -> 2, target_kl 0.04, for 1,048,576 steps (256 PPO iterations).
+# Resumes from stage 3's FINAL model. Resume paths are supplied by
+# scripts/run_dt_forward_pipeline.sh.
+
+experiment:
+  name: ppo_plane_dt_forward_stage4
+  seed: 42
+  output_dir: runs/ppo_plane_dt_forward_stage4
+
+environment:
+  id: horcrux_env/plane-direct-torque-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    torque_min: -2.7
+    torque_max: 2.7
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 1048576
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

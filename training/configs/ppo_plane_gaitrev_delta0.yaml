@@ -1,0 +1,122 @@
+schema_version: 2
+
+# NAMING: this file is deliberately NOT named ppo_plane_backward_*. The four
+# ppo_plane_backward_* configs all share the open-loop-derived gait
+# [30, -30, 40, 40, 345] and form one comparable experiment family. This run
+# uses a different gait mechanism entirely (the GaitV2 reverse flag) and its
+# numbers are NOT comparable to that family, so it carries its own name.
+#
+# Gait: [30, 30, 40, 40, 0, -1]  (user-specified, 2026-07-23)
+#   The 6th element is the GaitV2 reverse flag. GaitV2.getMvec negates the
+#   index k when it is set, replaying the motion matrix backwards in time.
+#   Spatial/temporal parameters are the validated forward gait's (30, 30, 40,
+#   40); only delta differs (23 -> 0) and time runs backwards.
+#
+# MEASURED CAVEAT (open loop, amplitude 1.35, same method used to derive the
+# left/right/backward gaits -- it reproduces left at +85.7 deg and right at
+# -87.3 deg, so the method itself is cross-validated):
+#
+#   gait                        1000     2000     4000     6000 steps (net dX)
+#   ------------------------  -------  -------  -------  -------
+#   [30,30,40,40,0,-1] (this)  +0.27    +0.72    +0.33    +0.48
+#   [30,-30,40,40,345]         -2.88    -1.83    -1.56    -3.17
+#   [30,30,40,40,23] (fwd)     +2.80    +3.37    +2.38    +5.28
+#
+# This gait's net dX is POSITIVE at every checkpoint, i.e. slightly forward,
+# not backward, and its displacement magnitude (0.4-0.8) is near zero next to
+# the forward prior (2.4-5.5). It behaves like the previously rejected
+# [30,30,40,40,23,-1], which measured 0.04-0.62: time-reversing the motion
+# matrix is exact, but bang-bang torque plus ground friction is not
+# time-reversible, so the net displacement cancels.
+#
+# The run therefore starts from a near-zero prior rather than a backward one.
+# RL may still find a backward policy -- the validated forward gait was itself
+# ~49 deg off-axis in open loop and training worked -- but the reward has to do
+# the work that a good prior normally does, so slower early progress and a
+# lower ceiling than the [30,-30,40,40,345] family are both plausible.
+#
+# PPO settings are the run 3 recipe, which won the 4-run Stage 1 hyperparameter
+# comparison on the backward gait (best eval return 1,735 vs the 1,265 baseline;
+# see policies/path_tracking/backward/TRAINING_HISTORY.txt): n_epochs 10 with a
+# learning rate decaying linearly to zero. Everything else matches the backward
+# family so the gait is the only environment-side difference.
+experiment:
+  name: ppo_plane_gaitrev_delta0
+  seed: 42
+  output_dir: runs/ppo_plane_gaitrev_delta0
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [-1.0, 0.0, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 0, -1]
+
+    # Reward backward translation while discouraging a 180-degree turn
+    # followed by ordinary forward locomotion.
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+# Intentionally no resume section: initialize a new policy and optimizer.
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate:
+      schedule: linear
+      initial: 0.0001
+      final: 0.0
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 10
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# 6,937 iterations * (512 steps * 8 environments) = 28,413,952.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

@@ -1,0 +1,89 @@
+schema_version: 2
+
+# Stage 3: stabilizing continuation of the rightward (-Y) policy.
+#
+# Basis (right Stage 2, run 20260723-103627-560042): the trust region ended
+# saturated — final approx_kl 0.047~0.063 above target_kl 0.04, clip_fraction
+# 0.415, 731 KL early-stops concentrated in the last third, policy std down to
+# 0.435, and the evaluation return plateaued near 225K. This mirrors left
+# Stage 2's end state, so apply the left-Stage-3-validated conservative
+# continuation: learning_rate 1e-4 -> 5e-5 and n_epochs 3 -> 2, target_kl kept.
+# Everything else (environment, gait delta=225, rewards, network) is frozen.
+experiment:
+  name: ppo_plane_right_continue_stage3
+  seed: 42
+  output_dir: runs/ppo_plane_right_continue_stage3
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [0.0, -1.0, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 225]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/right/02_right_continue_stage2/final_model.zip
+  vecnormalize_path: policies/path_tracking/right/02_right_continue_stage2/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# Additional samples; cumulative span 56.8M -> 85.2M.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 300
+  deterministic: true

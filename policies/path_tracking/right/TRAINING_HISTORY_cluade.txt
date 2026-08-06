@@ -1,0 +1,177 @@
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 우측(-Y) 게걸음
+======================================================
+
+정리일: 2026-07-22
+환경: horcrux_env/plane-v0
+프레임워크: Stable-Baselines3 PPO
+목표: 몸체의 전진 자세를 유지하면서 로봇 기준 우측(-Y)으로 이동
+joy_input: [0.0, -1.0, 0.0]
+gait_params: [30, 30, 40, 40, 225]
+rotation_norm_cost_weight: 10.0
+
+
+0. gait 파라미터 도출 근거
+--------------------------
+
+우측 gait는 검증된 좌측 gait(delta=45)의 x-z 평면 거울상으로 도출했다.
+
+  - 거울 반전(y -> -y)에서 dorsal 관절(y축 회전)은 불변, lateral 관절(z축
+    회전)은 부호 반전된다.
+  - lateral 파의 부호 반전은 -sin(phi + 45) = sin(phi + 225)이므로
+    delta = 45 + 180 = 225가 정확한 거울상이다.
+  - 수치 검증(2026-07-22): delta=225의 MotionMatrix는 delta=45 대비
+    dorsal 행 100% 일치, lateral 행 100% 부호 반전.
+  - 주의: delta=-45는 거울상이 아니다 (lateral 일치율 50%, 우연 수준).
+    우측 이동용으로 사용하지 않는다.
+
+좌측 정책의 성공 레시피(Stage 1 -> 2 -> 3)를 그대로 반영하며, 환경 보상은
+방향 벡터 내적/절대값 기반이라 -Y 방향에도 대칭적으로 동작함을 확인했다.
+
+
+1. 현재 권장 우측 정책
+----------------------
+
+3단계 계보 완료 (2026-07-23). 현재 대표 조합 (Stage 3 best):
+
+  03_right_continue_stage3/
+      evaluation/best_model.zip
+      evaluation/best_model_vecnormalize.pkl
+
+최고 평가 리턴: 244,042.7 @ cumulative timestep 81,327,904
+마지막 평가 리턴: 242,807.5 @ 85,077,904 (평가 episode 6,000스텝 완주)
+
+주의:
+  evaluation/best_model.zip에는 evaluation/best_model_vecnormalize.pkl을 사용한다.
+  final_model.zip에는 같은 run 루트의 vecnormalize.pkl을 사용한다.
+  서로 다른 단계 또는 best/final 사이의 정규화 통계를 섞지 않는다.
+
+성공한 정책 계보:
+  01(from scratch) final -> 02(n_epochs 3) final -> 03(lr 5e-5, n_epochs 2) best/final
+
+
+2. 계획된 학습 단계 (좌측 계보 기준)
+------------------------------------
+
+Stage 1 (from scratch):
+  - 설정: training/configs/ppo_plane_right_from_scratch_long.yaml
+  - 새 MlpPolicy + 새 VecNormalize, 이전 정책 없음
+  - learning_rate: 0.0001, n_epochs: 2, target_kl: 0.04
+  - 추가 timestep: 28,413,952
+  - 좌측 Stage 1 결과 참고치: 최고 평가 리턴 173,122 @ 27.1M,
+    y_velocity 0.485, direction_similarity 0.782
+
+Stage 2 이후:
+  - 좌측 계보와 동일하게 Stage 1 final + vecnormalize.pkl에서
+    reset_num_timesteps=False로 연속 학습.
+  - 좌측에서 검증된 보수적 이어학습 값: learning_rate 5e-5, n_epochs 2,
+    target_kl 0.04 (AGENTS.md 참조).
+  - 각 단계는 새 YAML, experiment.name, output_dir를 사용한다.
+
+
+3. 단계별 학습 이력
+-------------------
+
+[01] Stage 1 from scratch (완료)
+
+이동 전 run:
+  runs/ppo_plane_right_from_scratch_long/
+    20260722-200128-406969_ppo_plane_right_from_scratch_long
+현재 위치: 01_right_from_scratch_long/
+
+참고: 첫 시도(20260722-190320, ~3.75M 스텝)는 실행 세션 종료로 중단됨.
+계보에 포함하지 않으며 00_aborted_session_terminated/로 보존. 재시작 run은 setsid로 분리 실행.
+
+시작점:
+  - 이전 정책 없음: 새 MlpPolicy + 새 VecNormalize
+  - learning_rate: 0.0001, n_epochs: 2, target_kl: 0.04
+
+결과 (28,413,952 스텝, 26,084초 = 7.2h, 1,089 fps):
+  - 최고 평가 리턴: 162,525.5 @ 28,300,000
+  - 마지막 평가 리턴: 162,145.3 @ 28,400,000
+  - 최근 y_velocity: -0.458 (우측 방향 일치)
+  - 최근 x_velocity: 0.009 (전방 표류 거의 없음)
+  - 최근 direction_similarity: 0.754
+  - 최근 abs_com_yaw_deg: 9.39 (몸체 전진 자세 유지 = 실제 게걸음)
+  - explained variance: 0.826
+  - 말기 approx_kl: 0.0038, clip fraction: 0.019, policy std: 0.833
+  - Early stopping(max kl): 총 2회 (트러스트 리전 거의 유휴)
+  - 학습 곡선: -327K에서 시작, 4.1M 부근 탐색 저점(-452K) 후 단조 상승
+
+좌측 Stage 1 대비:
+  - 최고 리턴 162.5K vs 173.1K (약 6% 낮음, 거울상 기대 범위)
+  - |y_velocity| 0.458 vs 0.485, direction_similarity 0.754 vs 0.782
+  - 말기 KL/clip 매우 낮음 — 좌측 Stage 1 종료 상태(KL 0.0052, clip 0.032)와
+    동일한 패턴
+
+[02] Stage 2 연속 학습 (완료)
+
+이동 전 run:
+  runs/ppo_plane_right_continue_stage2/
+    20260723-103627-560042_ppo_plane_right_continue_stage2
+현재 위치: 02_right_continue_stage2/
+
+시작점:
+  [01] final_model.zip + vecnormalize.pkl (누적 28,413,952)
+
+주요 변경 및 근거:
+  - n_epochs: 2 -> 3 (Stage 1 말기 KL이 target의 1/10로 유휴 — 좌측 Stage 2 처방)
+  - learning_rate 0.0001, target_kl 0.04 유지
+
+결과 (추가 28,413,952 스텝 -> 누적 56,827,904, 20,224초 = 5.6h, 1,404 fps):
+  - 최고 평가 리턴: 226,874.7 @ 56,163,952 (Stage 1 대비 +39.6%)
+  - 마지막 평가 리턴: 225,046.7 @ 56,663,952
+  - 최근 y_velocity: -0.566 (Stage 1: -0.458)
+  - 최근 direction_similarity: 0.846 (Stage 1: 0.754)
+  - 최근 abs_com_yaw_deg: 3.88 (Stage 1: 9.39)
+  - explained variance: 0.895
+  - 말기 approx_kl: 0.047~0.063 (target 0.04 초과), clip fraction: 0.415
+  - Early stopping: 731회 (후반 1/3에 427회 집중), policy std: 0.833 -> 0.435
+  - 말미 평가 리턴 정체(224K -> 227K -> 225K) — 트러스트 리전 포화 진단
+
+판단:
+  성능은 크게 향상됐으나 좌측 Stage 2와 동일하게 말기 KL/clipping 포화.
+  Stage 3는 좌측 검증 보수화 처방(lr 5e-5, n_epochs 2)으로 진행.
+
+[03] Stage 3 연속 학습 (완료)
+
+이동 전 run:
+  runs/ppo_plane_right_continue_stage3/
+    20260723-161607-573027_ppo_plane_right_continue_stage3
+현재 위치: 03_right_continue_stage3/
+
+시작점:
+  [02] final_model.zip + vecnormalize.pkl (누적 56,827,904)
+
+주요 변경 및 근거:
+  - learning_rate: 0.0001 -> 0.00005, n_epochs: 3 -> 2 (Stage 2 말기 포화 완화,
+    좌측 Stage 3에서 KL 0.0499->0.0365, 리턴 +5.8%를 검증한 처방)
+  - target_kl 0.04 유지
+
+결과 (추가 28,413,952 스텝 -> 누적 85,241,856, 17,829초 = 5.0h, 1,593 fps):
+  - 최고 평가 리턴: 244,042.7 @ 81,327,904 (Stage 2 대비 +7.6%)
+  - 마지막 평가 리턴: 242,807.5 @ 85,077,904
+  - 최근 y_velocity: -0.600, x_velocity: 0.015
+  - 최근 direction_similarity: 0.865
+  - 최근 abs_com_yaw_deg: 3.2
+  - explained variance: 0.900, policy std: 0.355
+  - 말기 approx_kl: 0.043~0.063, clip fraction: 0.356
+  - Early stopping: 481회 (Stage 2의 731회에서 감소했으나 좌측 Stage 3의
+    안정 수준까지는 내려가지 않음)
+
+판단:
+  전 구간 단조 상승으로 마무리(225K -> 244K). 좌측 최종(273.7K, y_vel 0.683,
+  dir_sim 0.882) 대비 약 89% 수준의 거울상 정책. 우측 대표 정책은 03의
+  evaluation/best 조합. 말기 KL이 target을 여전히 상회하므로, 추가 stage를
+  진행한다면 lr 2.5e-5 수준의 재보수화가 후보 (실행은 사용자 지시 대기).
+
+
+4. 확인 명령
+------------
+
+대표 정책 평가:
+  python training/evaluate.py \
+    "policies/path_tracking/right/03_right_continue_stage3/evaluation/best_model.zip" \
+    --episodes 3 --render
+
+전체 우측 학습 로그:
+  tensorboard --logdir ./policies/path_tracking/right --port 6006

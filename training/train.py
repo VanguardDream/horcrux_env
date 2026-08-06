@@ -17,7 +17,7 @@ import yaml
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.utils import FloatSchedule
+from stable_baselines3.common.utils import FloatSchedule, get_linear_fn
 from stable_baselines3.common.vec_env import (
     DummyVecEnv,
     SubprocVecEnv,
@@ -146,6 +146,12 @@ def load_config(path: Path) -> dict[str, Any]:
             raise ValueError("The 'resume' configuration section must be a mapping.")
         if not resume.get("model_path"):
             raise ValueError("resume.model_path is required when resuming training.")
+        if isinstance(ppo_kwargs.get("learning_rate"), dict):
+            raise ValueError(
+                "A scheduled learning_rate is not supported when resuming: the "
+                "schedule is driven by progress within a single run, so it would "
+                "restart from 'initial' instead of continuing where it left off."
+            )
         if observation_normalization_enabled(config) and not resume.get(
             "vecnormalize_path"
         ):
@@ -359,6 +365,41 @@ def build_policy_kwargs(config: dict[str, Any]) -> dict[str, Any]:
     return policy_kwargs
 
 
+def build_algorithm_kwargs(config: dict[str, Any]) -> dict[str, Any]:
+    """PPO kwargs with `learning_rate` optionally expanded into a schedule.
+
+    A float is passed through unchanged. A mapping selects a schedule that SB3
+    evaluates against `progress_remaining` (1.0 at the first update, 0.0 at the
+    last), which is how the step size can be made to track the policy's own
+    shrinking action std over a run:
+
+        learning_rate:
+          schedule: linear
+          initial: 0.0003
+          final: 0.0        # optional, defaults to 0.0
+    """
+    kwargs = dict(config["algorithm"].get("kwargs", {}))
+    learning_rate = kwargs.get("learning_rate")
+    if not isinstance(learning_rate, dict):
+        return kwargs
+
+    schedule = str(learning_rate.get("schedule", "linear")).lower()
+    if schedule != "linear":
+        raise ValueError(
+            f"Unsupported learning_rate.schedule '{schedule}'. Choose: linear."
+        )
+    if "initial" not in learning_rate:
+        raise ValueError("learning_rate.initial is required for a scheduled rate.")
+    initial = float(learning_rate["initial"])
+    final = float(learning_rate.get("final", 0.0))
+    if initial <= 0 or final < 0:
+        raise ValueError(
+            "learning_rate.initial must be positive and final must be non-negative."
+        )
+    kwargs["learning_rate"] = get_linear_fn(initial, final, 1.0)
+    return kwargs
+
+
 def main() -> None:
     args = parse_args()
     config = apply_overrides(load_config(args.config), args)
@@ -494,7 +535,7 @@ def main() -> None:
                 policy_kwargs=build_policy_kwargs(config),
                 tensorboard_log=str(run_dir / "tensorboard"),
                 verbose=1,
-                **algorithm.get("kwargs", {}),
+                **build_algorithm_kwargs(config),
             )
 
         print(f"Configuration: {args.config.resolve()}")

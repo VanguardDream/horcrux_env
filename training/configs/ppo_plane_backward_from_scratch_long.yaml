@@ -1,0 +1,98 @@
+schema_version: 2
+
+# Approximately 10-hour backward (-X) gait training from a newly initialized
+# PPO policy and fresh VecNormalize statistics. No previous policy is loaded.
+#
+# Gait derivation (2026-07-22, see policies/path_tracking/backward/TRAINING_HISTORY.txt):
+# - Unlike left/right, no analytic transform of the forward gait yields -X:
+#   the robot body is head-tail asymmetric, so an x-mirror does not exist in
+#   the (e_d1, e_l1, delta) family, and the GaitV2 reverse flag (6th param),
+#   although verified to time-reverse the MotionMatrix exactly, produces
+#   near-zero displacement under bang-bang torque with ground friction.
+# - Open-loop grid scan over spatial-phase signs and delta (amp 1.35 = the
+#   initial mean policy amplitude) found a backward pocket at
+#   (30, -30, 40, 40, ~340-346). delta=345 is the only point with net dX < 0
+#   at 1000/2000/4000/6000 steps and was selected.
+# - Prior quality caveat: open-loop displacement magnitude (~1.7-3.7) is
+#   weaker than the left/right priors (~12) and closer to the forward prior
+#   in fragility; the validated forward gait was also ~49 deg off-axis in
+#   open loop and RL still learned, so this is accepted as a starting prior.
+# All reward weights and PPO settings match the validated left Stage 1 recipe,
+# identically to the right Stage 1 run.
+experiment:
+  name: ppo_plane_backward_from_scratch_long
+  seed: 42
+  output_dir: runs/ppo_plane_backward_from_scratch_long
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [-1.0, 0.0, 0.0]
+    use_gait: true
+    gait_params: [30, -30, 40, 40, 345]
+
+    # Reward backward translation while discouraging a 180-degree turn
+    # followed by ordinary forward locomotion.
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+# Intentionally no resume section: initialize a new policy and optimizer.
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# 6,937 iterations * (512 steps * 8 environments) = 28,413,952.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

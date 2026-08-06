@@ -1,0 +1,118 @@
+schema_version: 2
+
+# Backward (-X) Stage 1, hyperparameter variant 2 of 3.
+#
+# Baseline = ppo_plane_backward_from_scratch_long.yaml (run1_baseline), which
+# reached eval return +1,265 @ 28.1M and then flattened at ~1,230.
+#
+# Diagnosis from the baseline console log:
+#   - approx_kl climbed monotonically 1.4e-4 -> 4.3e-2 while the policy's
+#     action std fell 1.00 -> 0.569. KL between Gaussians scales as
+#     (dmu)^2 / sigma^2, so a fixed learning rate buys ~3x more KL late in
+#     training than it does early.
+#   - Early (0-10M): approx_kl sat ~1/100 of target_kl and clip_fraction was
+#     exactly 0. Every rollout was under-exploited; the trust region was idle.
+#   - Late (20M+): 172 "Early stopping ... max kl" events, most at epoch step
+#     0 or 1, i.e. entire rollouts were discarded after a fraction of one pass.
+#
+# NOTE: this variant is a delta from RUN 2, not from run 1. Run 2 (n_epochs=10)
+# beat the baseline decisively -- best eval return 1,695 vs 1,265, and it passed
+# the baseline's *final* score by 4.1M steps -- so run 2 is the base worth
+# improving on. Runs 3 and 4 are each a single-variable change from run 2, which
+# keeps attribution clean against the new best.
+#
+# What run 2 did not fix: it hit the trust region far harder. approx_kl sat at
+# 0.03-0.07 against target_kl=0.04 from ~8M onward, clip_fraction held 0.3-0.4,
+# and early stopping fired 4,843 times (vs 172 in the baseline). Its eval return
+# then oscillated within 1,237-1,695 for the last 20M steps with no trend: the
+# run was KL-saturated and no longer converging.
+#
+# This variant relieves that wall by decaying the step size to zero across the
+# run, tracking the policy's own collapsing action std (0.331 by the end of run
+# 2). The initial rate is unchanged, so the early phase should reproduce run 2
+# and only the tail behaves differently.
+#
+# ONLY optimizer hyperparameters differ from the baseline. The environment,
+# reward weights, gait, joy_input, gamma, net_arch, activation, normalization
+# and seed are byte-identical, so any difference in outcome is attributable to
+# the optimizer and the learned behaviour is the same objective as run 1.
+#
+#   n_epochs:      2 -> 10                   (adopted from run 2)
+#   learning_rate: 1e-4 constant -> linear 1e-4 ... 0.0
+experiment:
+  name: ppo_plane_backward_run3_lrdecay
+  seed: 42
+  output_dir: runs/ppo_plane_backward_run3_lrdecay
+
+environment:
+  id: horcrux_env/plane-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [-1.0, 0.0, 0.0]
+    use_gait: true
+    gait_params: [30, -30, 40, 40, 345]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate:
+      schedule: linear
+      initial: 0.0001
+      final: 0.0
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 10
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# 6,937 iterations * (512 steps * 8 environments) = 28,413,952. Same as run 1.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

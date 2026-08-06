@@ -1,0 +1,78 @@
+schema_version: 2
+
+# GD control group (direct torque), forward (+X), stage 5 of 5.
+#
+# Mirrors policies/path_tracking/forward/05_forward_x_long
+# (config: ppo_plane_curriculum_x_long.yaml): the 30.72M-step long run
+# (7,500 PPO iterations) at lr 5e-5 / 2 epochs / target_kl 0.04.
+# Resumes from stage 4's FINAL model. Resume paths are supplied by
+# scripts/run_dt_forward_pipeline.sh.
+#
+# After this stage the control group has the same cumulative budget as the
+# treatment group's forward policy (~47.6M env steps).
+
+experiment:
+  name: ppo_plane_dt_forward_stage5
+  seed: 42
+  output_dir: runs/ppo_plane_dt_forward_stage5
+
+environment:
+  id: horcrux_env/plane-direct-torque-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    torque_min: -2.7
+    torque_max: 2.7
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 30720000
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

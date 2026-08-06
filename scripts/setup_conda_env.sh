@@ -82,9 +82,13 @@ if [[ "$INSTALL_CUDA" -eq 1 ]]; then
   step "CUDA PyTorch 설치 (torch ${TORCH_VERSION}+${CUDA_TAG})"
   if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi --query-gpu=name,driver_version --format=csv,noheader || true
-    if ! pip install --force-reinstall --no-deps \
+    # Linux CUDA wheel은 Windows와 달리 CUDA 라이브러리를 내장하지 않고
+    # cuda-toolkit / nvidia-cudnn-cu13 / triton 등을 의존성으로 요구하므로
+    # --no-deps 없이 설치해야 한다 (부족한 패키지는 PyPI에서 보충).
+    if ! pip install --force-reinstall \
         "torch==${TORCH_VERSION}+${CUDA_TAG}" \
-        --index-url "https://download.pytorch.org/whl/${CUDA_TAG}"; then
+        --index-url "https://download.pytorch.org/whl/${CUDA_TAG}" \
+        --extra-index-url "https://pypi.org/simple"; then
       echo "경고: ${CUDA_TAG} wheel 설치 실패. pip 기본 torch를 유지합니다." >&2
       echo "      GPU 드라이버에 맞는 wheel을 https://pytorch.org/get-started/locally/ 에서 확인하세요." >&2
     fi
