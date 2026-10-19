@@ -1,0 +1,138 @@
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 전진-우 45도 대각
+==========================================================
+
+작성일: 2026-09-02
+환경: horcrux_env/plane-v0
+프레임워크: Stable-Baselines3 PPO
+목표: 몸체의 전진 자세를 유지하면서 로봇 기준 전진-우 45도 대각으로 이동
+joy_input: [0.7071, -0.7071, 0.0] (-45도 단위 벡터)
+gait_params: [30, 30, 40, 40, 203]
+보상 계수: 전 계보 공통 (forward 60 / efficiency 3 / healthy 2 /
+rotation_norm_cost 10.0 / proj_dist 0 / ctrl 0)
+
+
+0. gait 파라미터 도출 근거
+--------------------------
+
+delta=203 (= 23 + 180)은 검증된 전진-좌 대각 gait(delta=23)의 x-z 평면
+거울상이다. 수치 검증(2026-09-02): MotionMatrix가 delta=23 대비 dorsal 행
+100% 일치, lateral 행 100% 부호 반전.
+
+주의: plane_v3.py 방향 주석 테이블의 ↘ = -23은 거울상이 아니다
+(lateral 일치율 25.6%). 좌/우 때 delta=-45가 틀렸던 것과 같은 유형의
+오류이므로 사용하지 않는다. 거울상 원리(delta+180)는 좌(273.7K) ->
+우(244.0K) 실학습으로 이미 입증된 방법이다.
+
+
+1. 현재 권장 대각(FR) 정책
+--------------------------
+
+3단계 계보 완료 (2026-09-02). 현재 대표 조합 (Stage 3 best):
+
+  03_diag_fr_continue_stage3/
+      evaluation/best_model.zip
+      evaluation/best_model_vecnormalize.pkl
+
+최고 평가 리턴: 181,215.3 @ 82,327,904
+마지막 평가 리턴: 180,178.7 @ 85,077,904 (전 episode 6,000스텝 완주)
+2026-09-03 사용자 지시로 번호 디렉터리 정리 완료 (01~03, 콘솔 로그 포함).
+
+
+2. 단계별 학습 이력
+-------------------
+
+[완료] Stage 1 from scratch (2026-09-02)
+  설정: training/configs/ppo_plane_diag_fr_from_scratch_long.yaml
+  현재 위치: 01_diag_fr_from_scratch_long/
+  (이동 전 run: runs/.../20260902-102706-813605) (28,413,952 스텝, 17,635초 = 4.9h, 1,611 fps)
+  최고/마지막 평가 리턴: 150,257.4 @ 28,400,000 (말미까지 상승 중)
+  x_velocity: 0.279, y_velocity: -0.269 (비율 1.04:1, heading -44.0도 ≈ 목표 -45도)
+  dir_sim: 0.802 (FL과 동치), yaw: 5.11도
+  말기 approx_kl 0.0219 / clip 0.233 / 조기중단 4회 / std 0.609 / EV 0.857
+  FL(184,934) 대비 -19%: 방향 정렬은 동일하고 합속도 크기 차이(0.39 vs 0.52).
+  좌(273.7K) 대비 우(244.0K)와 같은 좌우 물리 비대칭 패턴으로 판단.
+  판단: KL 여유 → Stage 2는 검증 레시피대로 n_epochs 2->3.
+
+[완료] Stage 2 (2026-09-02)
+  설정: training/configs/ppo_plane_diag_fr_continue_stage2.yaml
+  현재 위치: 02_diag_fr_continue_stage2/
+  (이동 전 run: runs/.../20260902-152301-377732) (28.4M 추가 -> 누적 56,827,904, 14,936초 = 4.1h, 1,902 fps)
+  최고/마지막 평가 리턴: 171,998.1 @ 56,663,952 (Stage 1 대비 +14.5%, 말미까지 상승)
+  x_velocity: 0.311, y_velocity: -0.322 (heading -46.0도), dir_sim: 0.830, yaw: 4.44도
+  말기 approx_kl 0.060 (target 상회) / clip 0.296 / 조기중단 3,349회 / std 0.423 / EV 0.807
+  판단: 강한 트러스트 리전 포화 → Stage 3는 검증 보수화(lr 5e-5, n_epochs 2).
+
+[완료] Stage 3 (2026-09-02) — 캠페인 종료
+  설정: training/configs/ppo_plane_diag_fr_continue_stage3.yaml
+  현재 위치: 03_diag_fr_continue_stage3/
+  (이동 전 run: runs/.../20260902-193410-937298) (28.4M 추가 -> 누적 85,241,856, 14,914초 = 4.1h, 1,905 fps)
+  최고 평가 리턴: 181,215.3 @ 82,327,904 (Stage 2 대비 +5.4%)
+  마지막 평가 리턴: 180,178.7 @ 85,077,904 — 말미까지 완만한 상승
+  x_velocity: 0.315, y_velocity: -0.333 (heading -46.6도), dir_sim: 0.843, yaw: 3.79도
+  말기 approx_kl 0.0361 / clip 0.313 / 조기중단 3,349 -> 101회 / std 0.353 / EV 0.868
+  판단: 보수화 처방 유효(7개 stage 전환째 재현).
+
+=== 대각(FR) 계보 요약 ===
+  Stage 1 (28.4M): 150,257 | lr 1e-4, ep 2
+  Stage 2 (56.8M): 171,998 | ep 2->3 (+14.5%)
+  Stage 3 (85.2M): 181,215 | lr 5e-5, ep 2 (+5.4%)
+  총 학습 시간 47,485초 = 13.2h.
+  6개 방향 최고 리턴(동일 보상 체계, 각 85.2M):
+    left 273,700 / right 244,043 / forward(d0) 232,266 /
+    diag_fl 211,721 / backward 209,908 / diag_fr 181,215
+  FL 대비 -14%는 좌우 물리 비대칭(좌>우 전 계보 일관) 범위 내.
+
+검증할 핵심 지표:
+  - x_velocity 양수, y_velocity 음수로 함께 증가하며 비율 ~1:1인가
+  - direction_similarity가 양수로 상승하는가
+  - abs_com_yaw_deg가 작게 유지되는가
+  - 참고 기대치: 거울상인 전진-좌 계보 Stage 1 최고 184,934
+
+[완료] 인계 시작(moving-state init) iteration 1 (2026-09-10 13:39 ~ 21:10, 28.4M)
+  설정: training/configs/ppo_plane_diag_fr_moving_init_iter1.yaml  (정리 시 04_diag_fr_moving_init_iter1)
+  run: runs/ppo_plane_diag_fr_moving_init_iter1/20260910-133854-046866_ppo_plane_diag_fr_moving_init_iter1
+  환경: horcrux_env/plane-moving-init-v0 — 보상·종료·γ 0.95 stage 3와 동일, 시작 분포만 혼합:
+        정지 시작 50% / 인계 시작 50% (은행 runs/moving_state_bank/bank_iter1.npz 220,000 상태,
+        align 80% · 무작위 위상 20%, 인계 에피소드 1000스텝 절단)
+  stage 3 final 재개, lr 1e-4 / ep 2 / target_kl 0.04, 28.4M, fps ≈ 1,240 (3개 병렬), 완료 ≈ 20:00
+  목적: 다른 정책이 움직이던 상태에서 전환된 순간의 진입 강건성 학습 (정상 주행 성능 유지 조건)
+  결과: 최고 평가(혼합) 149,147 @98.2M | 정지 리턴 174K→177K 유지 | 인계 리턴 15.7K→19.1K, 길이 717→743 | KL 0.041 포화, clip 0.32, std 0.353→0.314
+  결정론 평가(전→후, final): 정지 속도 0.455→(유지) | 진입 실패 평균 0.311→0.361 (개선 없음; 출발 forward .40→.45, left .55→.60, diag_fl .50→.55, cw .45→.55)
+  판정: 정상 주행 유지(혼합 분포 효과)되나 결정론 진입 실패율은 개선 없음 → 낙상 비용(unhealthy_cost 2, γ 0.95) 부족 가설, iteration 2에서 수정 (캠페인 원장 참조)
+
+[완료] 인계 시작 iteration 2 (2026-09-10 21:42 ~ 2026-09-11 05:13, 28.4M)
+  설정: training/configs/ppo_plane_diag_fr_moving_init_iter2.yaml  (정리 시 05_diag_fr_moving_init_iter2)
+  run: runs/ppo_plane_diag_fr_moving_init_iter2/20260910-214150-436457_ppo_plane_diag_fr_moving_init_iter2
+  iteration 1 final 재개. 변경: unhealthy_cost_weight 2→200 (인계 env가 종료 스텝에 1회 보정 적용 —
+  plane_v3 이중 호출 결함으로 기존 계보는 낙상 페널티를 받은 적 없음), lr 1e-4→5e-5 (KL 포화). 나머지 동일.
+  fps ≈ 1,215 (3개 병렬)
+  결과: 최고 평가(혼합) 155,143 @126.7M | 정지 리턴 177K→184K 유지 | 인계 리턴 14.9K→18.0K, 길이 700→742 | 학습 중 인계 후 100스텝 실패(확률적) 0.154→0.195 | KL 0.049 포화, clip 0.33, std 0.314→0.282
+  결정론 평가(기준→iter1→iter2 final / best, eval_iter2_final.json·eval_iter2_best.json): 정지 속도 0.455→0.464→0.470 | 진입 실패 평균 0.311→0.361→0.361 / 0.333 (개선 없음; final 출발별 forward .60, left .60, diag_br .55, ccw .55, cw .45, diag_fl .35, backward .15, right·diag_bl 0)
+  확률적 평가(출발 9×10상태): 기준 결정론 0.311 / 확률적 0.267, iter2 final 0.367 / 0.333 — 결정론·확률적 차이가 작아 평균 행동의 경계선 문제가 아님
+  판정: 벌점 200이 실제로 적용됐고 주행은 유지됐으나 진입 실패율은 줄지 않음(소폭 악화). 벌점 상향만으로는 부족 → iteration 3 후보: 탐색 폭 확대 / 전환 직후 저진폭 보상 / 가족 간 진입 시작 위상 규칙 (캠페인 원장 참조)
+
+[완료] 인계 시작 iteration 3 (2026-09-11 17:05 ~ 2026-09-12 00:45, 28.4M)
+  설정: training/configs/ppo_plane_diag_fr_moving_init_iter3.yaml  (정리 시 06_diag_fr_moving_init_iter3)
+  run: runs/ppo_plane_diag_fr_moving_init_iter3/20260911-170530-509508_ppo_plane_diag_fr_moving_init_iter3
+  원본(03 stage 3 final)에서 재개. 변경: 인계 에피소드 한정 매 스텝 항 2개 추가 — cost_tilt(|roll| 15°~45° 비례 −20/스텝, 75° 이상 −40 캡),
+  cost_push_tilt(−20 × 기울기 비율 × 평균 진폭/최대 진폭). 벌점 200 1회·γ 0.95·은행·혼합 50%·align 80%·절단 1000·lr 1e-4/ep 2/KL 0.04 동일.
+  근거: 넘어지기 전 ~15스텝에 신호가 없고 늦은 벌점은 γ로 약해짐 → 정책이 관측하는 기울기로 조건화한 촘촘한 신호. 3개 병렬, 완료 ≈ 23:30
+  성공 기준: 진입 실패 0.311 → 0.20 이하, 정지 주행 속도 ≥ 97% 유지
+  결과: 최고 평가(혼합) 145,679 @88.2M(초반) | 정지 리턴 171K→170K | 인계 리턴 5.1K→3.8K | 학습 중 인계 후 100스텝 실패 0.269→0.297
+        cost_tilt −1.08→−1.08, cost_push_tilt −0.38→−0.39 (벌점을 피하는 행동을 찾지 못함) | KL 0.036→0.040, std 0.352→0.342
+  결정론 평가(eval_iter3_final.json / eval_iter3_best.json): 정지 속도 0.455→0.464(리턴 29,552→28,988) | 진입 실패 0.311→0.322 / best 0.328 — 개선 없음(기준 0.20 미달)
+  시작 위상 규칙 비교(eval_phase_rules_iter3_final.json, 같은 20상태): 부호 정렬 0.428 → 가로 먼저 0.233 (원본 전문가는 0.378 → 0.261)
+  판정: 촘촘한 기울기 벌점도 진입 실패를 줄이지 못함 → 힘의 크기 조절로는 이 출발 상태를 구하기 어렵다는 쪽. 시작 위상 규칙이 가장 큰 지렛대 (캠페인 원장 iteration 4 후보 참조)
+
+[완료] 인계 시작 iteration 4 (2026-09-12 11:20 ~ 18:55, 28.4M)
+  설정: training/configs/ppo_plane_diag_fr_moving_init_iter4.yaml  (정리 시 07_diag_fr_moving_init_iter4)
+  run: runs/ppo_plane_diag_fr_moving_init_iter4/20260912-112002-141135_ppo_plane_diag_fr_moving_init_iter4
+  원본(03 stage 3 final)에서 재개. 변경: 인계 시작 위상 규칙 align_rule='lat'(가로 부호 우선, 80%) + 무작위 20%. 벌점 200 1회, 새 항 없음.
+  나머지(은행·혼합 50%·절단 1000·γ 0.95·lr 1e-4/ep 2/KL 0.04·28.4M) iteration 1과 동일. fps ≈ 1,310 (3개 병렬), 완료 ≈ 19:15
+  근거: iteration 1~3은 정책이 구하기 어려운 출발 위상(부호 정렬)에서 학습해 무효. lat 규칙은 학습 없이 진입 실패 .378→.261(이 전문가).
+  성공 기준(lat 규칙 평가): 진입 실패 0.261 → 0.15 이하, 정지 주행 속도 ≥ 97% 유지. sign 규칙 값도 병기.
+  결과: 최고 평가(혼합) 149,600 @99.7M | 정지 리턴 173K→177K | 인계 리턴 18.2K→19.4K | 학습 중 인계 후 100스텝 실패 0.196→0.189 | KL 0.044→0.043, std 0.351→0.315
+  결정론 평가(sign, eval_iter4_final.json): 정지 속도 0.455→0.472(리턴 29,552→30,323) | 진입 실패 0.311→0.306
+  lat 규칙 평가(eval_phase_rules_iter4_{final,best}.json, 같은 20상태): 출발선(원본) 0.261 → final 0.272 / best 0.317 — 개선 없음(기준 0.15 미달). sign은 0.378→0.322
+  판정: 주행은 유지(소폭 상승)됐으나 lat 규칙 아래서도 진입 실패는 그대로. 남은 실패는 forward/left/ccw 출발(.50/.55/.65). 전문가 인계 학습은 여기서 멈춤(캠페인 원장 참조)
+

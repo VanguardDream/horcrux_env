@@ -1,0 +1,145 @@
+Horcrux 뱀 로봇 제자리 회전 정책 이력 - CCW(반시계, +yaw)
+============================================================
+
+작성일: 2026-09-05
+환경: horcrux_env/plane-rotation-v0 (신규, plane_rotation_v1.py)
+프레임워크: Stable-Baselines3 PPO
+목표: 제자리(앵커 이탈 최소)에서 CCW 방향 연속 회전
+joy_input: [0.0, 0.0, +1.0]
+gait_params: [30, 30, 40, 40, 315]
+보상: 회전정렬 45 · sign(joy_r) · yaw_vel + 효율 3 + healthy 2
+      - 앵커거리 50·‖com-시작COM‖ - unhealthy 2 (orientation/proj_dist 제거)
+
+
+0. gait 및 보상 도출 근거 (2026-09-05)
+--------------------------------------
+
+- 개루프 스캔(~80조합)에서 건강 조건과 양립하는 유일한 회전 쌍이
+  δ=135(CW)/315(CCW) 거울쌍. lateral 테이퍼 진폭(RL 행동 공간 내부)에서
+  +1,901도/3,000스텝, 표류 1.2m, roll 위반 1.4% 실증.
+- 회전량 3배인 1:2 패밀리(30,30,20,40,·)는 텀블링 결합(roll 위반 83%+,
+  생존 ~40스텝)으로 기각.
+- 기존 plane-v0는 joy=[0,0,±1]에서 보상 NaN(직진성 항 0-나눗셈) — 신규
+  환경 분리가 필수였음. 상세는 CLAUDE_CHANGES 2026-09-05 항목.
+- anchor_cost_weight=50은 유일한 미검증 계수: 2~3M 시점
+  env/anchor_distance·reward_angular_movement로 질식 여부 점검,
+  질식 시 30으로 인하 예정.
+
+
+1. 현재 권장 CCW 정책
+---------------------
+
+아직 없음. Stage 1 진행 중.
+
+
+2. 단계별 학습 이력
+-------------------
+
+[중단] Stage 1 1차 시도 (run 20260905-114411, ~3.2M에서 의도적 중단)
+  무한 선형 앵커 비용의 스케일 지배로 critic EV 0 고착(학습 정지) 진단.
+  기록용 보존, 계보 미포함. 교훈: 무계 비용 항은 critic 학습을 파괴한다.
+
+[완료] Stage 1 재시작 (2026-09-05, 포화형 앵커 비용)
+  설정: training/configs/ppo_plane_rot_ccw_from_scratch_long.yaml
+  (anchor: w50, dead_zone 0.15m, cap 2.0m → 최대 -100/step)
+  run: 00_v1_experiments/v1b_stage1_overspeed_collapse (이동 전 runs/.../20260905-122402)
+  (28,413,952 스텝, 13,014초 = 3.6h, 2,183 fps)
+  최고 평가 리턴: 246,967.3 @ 6,300,000 (ep_len 4,403) ← 대표 후보
+  마지막 평가 리턴: 42,767.5 (ep_len 487)
+  경과: 6.3M에 장수-회전 레짐 발견 후 근시안 기울기(γ=0.95, 유효지평 ~20스텝)로
+  과속-전도 레짐(1.44 rad/s, ep_len ~100-900)으로 이탈. eval-best가 좋은
+  정책을 포착. 말기 KL 5e-6/clip 0/EV 0.727/std 0.944, 조기중단 0회.
+  판단: Stage 2는 관례(final)와 달리 evaluation/best(6.3M)에서 재개 +
+  보수화(lr 5e-5, ep 2)로 좋은 basin을 다듬는다. 근본 원인(γ 근시안 vs
+  종료 페널티 약함)의 보상측 처방은 사용자 논의 사항으로 기록.
+
+[중단] Stage 2 (2026-09-05, 누적 ~12.5M에서 의도적 중단)
+  설정: training/configs/ppo_plane_rot_ccw_continue_stage2.yaml
+  run: 00_v1_experiments/v1c_stage2_best_resume_aborted (이동 전 runs/.../20260905-160532)
+  시작점: Stage 1 evaluation/best(6.3M) + 보수화 lr 5e-5/ep 2
+  결과: 재개 직후 첫 평가(6.4M)부터 37K/len 641로 급락, 이후 4~9K/len
+  ~100에서 진동(최고 93K @ 7.2M), 12M까지 회복 추세 없음.
+  결론: 장수-회전 레짐은 현 보상 구조에서 불안정 평형 — γ=0.95 근시안
+  지평에서 +65/step 회전 기울기가 종료 비용(비가시)을 항상 이긴다.
+  optimizer 조정으로는 목적함수 정렬 문제를 해결 불가. 보상 재설계
+  (회전 보상 포화 rate cap / 종료 페널티 대폭 인상 / γ 0.99) 필요 —
+  사용자 결정 대기. 현재 최선 정책: Stage 1 evaluation/best (246,967 @ 6.3M).
+
+검증할 핵심 지표:
+  - env/aligned_yaw_vel 양수 상승 (rad/s), env/yaw_velocity > 0
+  - env/anchor_distance 억제 (목표 ~0.3m 이하 수렴)
+  - ep_len 6000 유지 (텀블링 없이 회전)
+
+[완료] Stage 1 v2 — 안정 우선 재설계 (2026-09-05, 사용자 승인 C+추가안)
+  설정: training/configs/ppo_plane_rot_ccw_v2_from_scratch_long.yaml
+  run: 01_ccw_v2_from_scratch (이동 전 runs/.../20260905-195059)
+  재설계 내용:
+    - 회전 보상 목표 속도(0.5 rad/s) 포화 + 과속 페널티 (속도보다 안정 우선)
+    - 앵커 반경 0.2m 이탈 = 불건강 조건 (연속 30스텝 시 실패 종료)
+    - unhealthy_cost 2 -> 1000 (종료 페널티 가시화)
+    - gamma 0.95 -> 0.99 (신용 지평 연장)
+    - 부모 is_terminated의 스텝당 2회 호출 이중 증가/페널티 누락 결함을
+      멱등화로 수정 (검증 T1: 돌파+34스텝 종료, 종료 보상 -1006 확인)
+  lr 1e-4, n_epochs 2, target_kl 0.04, 28,413,952 스텝, from scratch
+  결과 (13,012초 = 3.6h, 2,183 fps):
+    - aligned_yaw_vel 0.507 (목표 0.5 정확 수렴), anchor 0.123m
+    - 평가: -2,196 -> +28,063 단조 상승, ep_len 44 -> 1,542 (best len 2,895 @ 27M)
+    - 붕괴 없음 — v1의 과속-전도 이탈이 재현되지 않음 (설계 검증)
+    - 말기 KL 1.9e-3 (target의 1/20), clip 0.003, EV 0.22, std 0.906
+  판단: 목표 속도·앵커는 달성, 과제는 생존 길이(1,542/6,000). KL 유휴 →
+  표준 레시피 n_epochs 2->3으로 Stage 2 (final 재개, γ 0.99 유지).
+
+[완료] Stage 2 v2 (2026-09-06)
+  설정: training/configs/ppo_plane_rot_ccw_v2_continue_stage2.yaml
+  run: 02_ccw_v2_stage2 (이동 전 runs/.../20260905-233211)
+  (28.4M 추가 -> 누적 56,827,904, 13,776초 = 3.8h)
+  최고 평가: 66,713 @ 45,513,952 (len 3,354) — Stage 1 대비 +35%
+  말기: aligned_yaw 0.574, anchor 0.113m, ep_len(rollout) 813
+  평가 12~19K 대역 정체, 생존 길이가 병목. KL 0.0099 / clip 0.06 / EV 0.026
+  판단: 정체 국면 → Stage 3는 보수화(lr 5e-5, ep 2, final 재개).
+  주: γ0.99+종료페널티-1000 하에서 critic EV 저조 지속 — 캠페인 후 검토 항목.
+
+[완료] Stage 3 v2 (2026-09-06) — CCW 캠페인 종료
+  설정: training/configs/ppo_plane_rot_ccw_v2_continue_stage3.yaml
+  run: 03_ccw_v2_stage3 (이동 전 runs/.../20260906-032323)
+  (28.4M 추가 -> 누적 85,241,856, 13,899초 = 3.9h)
+  최고 평가: 97,757 @ 69,827,904 (len 4,408) — Stage 2 대비 +47%
+  말기: aligned_yaw 0.570, anchor 0.099m, ep_len(rollout) 1,080, EV 0.004
+  평가 14~51K 진동 — 생존 일관성(풀 6,000)은 미달.
+
+=== CCW v2 계보 요약 ===
+  Stage 1: best 49,413 | Stage 2: 66,713 (+35%) | Stage 3: 97,757 (+47%)
+  달성: 목표 속도 0.5 수렴, 앵커 0.1m 유지, 붕괴 없음 (안정 우선 설계 검증)
+  미달: 풀 에피소드 생존 일관성 — critic EV~0(γ0.99+종료-1000의 가치 추정
+  난조)이 상한 요인. 개선 후보(사용자 결정): 보상 정규화(norm_reward),
+  가치망 분리/확장, 추가 stage.
+  현재 대표: runs/ppo_plane_rot_ccw_v2_continue_stage3/
+    20260906-032323-299683/evaluation/best_model.zip (+ 짝 통계)
+  2026-09-07 사용자 지시로 번호 디렉터리 정리 완료 (00_v1_experiments + 01~05).
+
+[완료] Stage 4 v2 — 연장 정착 (2026-09-06, 사용자 승인)
+  설정: training/configs/ppo_plane_rot_ccw_v2_continue_stage4.yaml
+  run: 04_ccw_v2_stage4 (이동 전 runs/.../20260906-105101)
+  Stage 3 final에서 resume (누적 85,241,856 -> 113,655,808)
+  lr 2.5e-5 (후진 계보 검증 재반감 패턴), n_epochs 2, target_kl 0.04
+  근거: Stage 3 말미까지 best 갱신 지속 + std 0.855 미소멸.
+  결과: best 139,915 @ 99.8M (len 5,705 — 풀 에피소드 근접), Stage 3 대비 +43%.
+  말기 평가 대역 46~67K로 상향(마지막 10회 평균 39.4K), ep_len 1,080->1,220.
+  std 0.843으로 어닐링 미실현 — 개선은 정책 정련 기인, critic EV 0.111 지속.
+  판정: 추가 학습의 안정성 개선 실증. Stage 5는 한계 이득 예상 — 도약은
+  critic 개선(보상 정규화 등) 필요. CCW 대표 정책을 Stage 4 best로 갱신:
+    04_ccw_v2_stage4 (이동 전 runs/.../20260906-105101)/
+      evaluation/best_model.zip (+ 짝 통계)
+
+[완료] Stage 5 v2 — 추가 연장 (2026-09-07, 사용자 승인 '둘 다 연장')
+  설정: training/configs/ppo_plane_rot_ccw_v2_continue_stage5.yaml
+  run: 05_ccw_v2_stage5 (이동 전 runs/.../20260906-232215)
+  (28.4M 추가 -> 누적 142,069,760, lr 2.5e-5 유지, CW Stage 4와 병렬)
+  최고 평가: 148,323 @ 126,755,808 — ep_len 6,000 (풀 에피소드 생존 최초 달성)
+  마지막 10회 평균 59,304 (Stage 4의 39,381 대비 +50% 일관성 개선)
+  aligned 0.579, anchor 0.122m.
+
+=== CCW v2 최종 계보 요약 (5-stage, 142.1M) ===
+  49.4K -> 66.7K -> 97.8K -> 139.9K -> 148.3K (풀 에피소드 달성)
+  현재 대표: 05_ccw_v2_stage5/evaluation/best_model.zip (+ 짝 통계)
+  2026-09-07 사용자 지시로 번호 디렉터리 정리 완료 (00_v1_experiments + 01~05).

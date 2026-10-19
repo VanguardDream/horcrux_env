@@ -1,0 +1,88 @@
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 전진-좌 45도 대각
+==========================================================
+
+작성일: 2026-09-01
+환경: horcrux_env/plane-v0
+프레임워크: Stable-Baselines3 PPO
+목표: 몸체의 전진 자세를 유지하면서 로봇 기준 전진-좌 45도 대각으로 이동
+joy_input: [0.7071, 0.7071, 0.0] (45도 단위 벡터)
+gait_params: [30, 30, 40, 40, 23]
+보상 계수: 전 계보 공통 (forward 60 / efficiency 3 / healthy 2 /
+rotation_norm_cost 10.0 / proj_dist 0 / ctrl 0)
+
+
+0. gait 파라미터 근거
+---------------------
+
+delta=23은 plane_v3.py 방향 주석 테이블의 ↗(전진-좌 대각) 항목 값이다.
+구 전진 계보(old/forward_delta23)가 착오로 이 gait로 전진을 학습했었다 —
+이번 캠페인에서 본래 용도(대각)로 사용한다. 사용자 지시(2026-08-31).
+
+
+1. 현재 권장 대각 정책
+----------------------
+
+3단계 계보 완료 (2026-09-02). 현재 대표 조합 (Stage 3 best):
+
+  03_diag_fl_continue_stage3/
+      evaluation/best_model.zip
+      evaluation/best_model_vecnormalize.pkl
+
+최고 평가 리턴: 211,720.7 @ 82,577,904
+마지막 평가 리턴: 209,107.3 @ 85,077,904 (전 episode 6,000스텝 완주)
+2026-09-02 사용자 지시로 번호 디렉터리 정리 완료 (01~03, 콘솔 로그 포함).
+
+
+2. 단계별 학습 이력
+-------------------
+
+[완료] Stage 1 from scratch (2026-09-01)
+  설정: training/configs/ppo_plane_diag_fl_from_scratch_long.yaml
+  현재 위치: 01_diag_fl_from_scratch_long/
+  (이동 전 run: runs/.../20260901-134112-909353) (28,413,952 스텝, 18,765초 = 5.2h, 1,514 fps)
+  최고 평가 리턴: 184,933.5 @ 28,200,000 — 전 계보 Stage 1 최고 기록
+  (forward 173,777 / left 173,123 / right 162,525 대비 +6~14%)
+  마지막 평가 리턴: 182,887.7 @ 28,400,000 (전 episode 6,000스텝 완주)
+  x_velocity: 0.370, y_velocity: 0.328 (비율 1.13:1, heading 41.6도 ≈ 목표 45도)
+  dir_sim: 0.803, yaw: 5.39도 (45도 회전 후 전진하는 꼼수 없음)
+  말기 approx_kl 0.0196 / clip 0.203 / 조기중단 3회 / std 0.598 / EV 0.832
+  특이점: 단일축 계보의 초기 탐색 저점(-420K~-450K)이 없음 — 시작 -90K에서
+  4.8M에 이미 양전환. delta=23 gait의 자연 진행 방향이 대각 명령과 잘 정렬됨.
+  판단: KL 여유 → Stage 2는 검증 레시피대로 n_epochs 2->3.
+
+[완료] Stage 2 (2026-09-01)
+  설정: training/configs/ppo_plane_diag_fl_continue_stage2.yaml
+  현재 위치: 02_diag_fl_continue_stage2/
+  (이동 전 run: runs/.../20260901-185600-651800) (28.4M 추가 -> 누적 56,827,904, 14,776초 = 4.1h, 1,922 fps)
+  최고 평가 리턴: 204,106.0 @ 56,413,952 (Stage 1 대비 +10.4%)
+  마지막 평가 리턴: 202,962.4 @ 56,663,952
+  x_velocity: 0.397, y_velocity: 0.366 (heading 42.7도), dir_sim: 0.820, yaw: 5.46도
+  말기 approx_kl 0.049~0.060 (target 상회) / clip 0.395 / 조기중단 2,166회(역대 최다)
+  / std 0.387 / EV 0.855
+  판단: 강한 트러스트 리전 포화 → Stage 3는 검증 보수화(lr 5e-5, n_epochs 2).
+
+[완료] Stage 3 (2026-09-02) — 캠페인 종료
+  설정: training/configs/ppo_plane_diag_fl_continue_stage3.yaml
+  현재 위치: 03_diag_fl_continue_stage3/
+  (이동 전 run: runs/.../20260901-230448-643580) (28.4M 추가 -> 누적 85,241,856, 15,030초 = 4.2h, 1,890 fps)
+  최고 평가 리턴: 211,720.7 @ 82,577,904 (Stage 2 대비 +3.7%)
+  마지막 평가 리턴: 209,107.3 @ 85,077,904 — 말미 209K~210K 수렴(정체)
+  x_velocity: 0.412, y_velocity: 0.369 (heading 41.9도), dir_sim: 0.825, yaw: 5.29도
+  말기 approx_kl 0.0309 / clip 0.283 / 조기중단 2,166 -> 80회 / std 0.324 / EV 0.873
+  판단: 보수화 처방 유효(5개 계보째 재현). 말미 정체로 추가 stage의 한계 이득
+  예상 — 대각 단독 개선은 여기서 마무리 권장.
+
+=== 대각(FL) 계보 요약 ===
+  Stage 1 (28.4M): 184,934 | lr 1e-4, ep 2 (전 계보 Stage 1 최고)
+  Stage 2 (56.8M): 204,106 | ep 2->3 (+10.4%)
+  Stage 3 (85.2M): 211,721 | lr 5e-5, ep 2 (+3.7%)
+  총 학습 시간 48,571초 = 13.5h.
+  5개 방향 최고 리턴(동일 보상 체계):
+    left 273,700 / right 244,043 / forward(d0) 232,266 /
+    diag_fl 211,721 / backward 209,908
+
+검증할 핵심 지표:
+  - x_velocity와 y_velocity가 함께 양수로 증가하며 비율이 ~1:1인가
+  - direction_similarity가 양수로 상승하는가
+  - abs_com_yaw_deg가 작게 유지되는가 (45도 회전 후 전진하는 꼼수 방지)
+  - 참고 기대치: 단일축 계보 Stage 1 최고 162K~174K

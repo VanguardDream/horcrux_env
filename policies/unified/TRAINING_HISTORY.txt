@@ -1,0 +1,160 @@
+Horcrux 뱀 로봇 통합(명령 조건부) 정책 이력
+=========================================
+
+!! 이 폴더의 정책은 "단일 네트워크가 10개 명령 + 전환"을 수행하는 통합 계보다.
+   policies/path_tracking/*, policies/rotation/* 의 방향별 전문가와는 별개이며,
+   VecNormalize 통계(통합 obs_rms)와 학습 환경(plane-unified-v0, 앵커 근접 보상,
+   전환 커리큘럼)이 달라 서로 섞어 쓸 수 없다. 전문가 스위칭 데모(path_following.py
+   EXPERT_PATHS)는 전문가만, --policy unified 모드는 이 폴더의 모델+정규화 쌍만 쓴다.
+
+작성일: 2026-09-09
+환경: horcrux_env/plane-unified-v0 (10 명령: 8방위 + CW/CCW, 명령 조건부 보상)
+목표: 전문가 10명을 한 정책으로 통합하고, 에피소드 내 gait 전환을 학습
+관측 계약: 방위 계보와 동일 (97차원, motion_vector 14 + joy 3 포함), 행동 [-1,1]->[0,2.7]
+보상 계수: 방위 계보 frozen 값 (forward 60, efficiency 3, healthy 2, rotation_norm 10,
+           proj_dist 0, ctrl 0) + 회전은 통합 env v2 안정 우선 보상 기본값
+gamma: 0.99 (회전 계보와 동일; 전환 후 지연 결과를 critic이 보도록)
+
+
+1. 현재 권장 통합 정책
+----------------------
+
+03_transition_stage3/  final_model.zip + vecnormalize.pkl  (2026-09-10 확정)
+  누적 120M(증류 → Stage 1~3). 고정 시드 벤치마크(40 에피소드): 전환 후 100스텝 실패 0.066
+  (S1 0.164의 40%), δ=203 도착 실패 0.06, 리턴 16.4K(전 체크포인트 동급). 전환 강건성 최우선.
+  차선: 02_transition_stage2/final_model.zip (완주율 0.80, 전환 실패 0.090).
+  평가 best(evaluation/best_model.zip)는 무작위 전환 평가의 잡음이 커서 대표로 쓰지 않는다.
+
+00_distilled/  증류 출발점 (전환 능력 없음, RL 계보의 resume 원본)
+
+
+2. 단계별 이력
+--------------
+
+[실패·보존] old/00_distilled_v1_det_only (2026-09-09)
+  training/distill_experts.py, 결정론 전문가 롤아웃 40만 샘플, BC 30 epoch
+  검증 MSE 0.0025 (데이터 안 모방 정확)
+  닫힌 루프: left/right/cw 100% 낙상, diag_fr 역방향(-0.10 m/s)
+  진단: 공변량 이동 — 전문가가 결정론적+초기 자세 동일이라 상태 분포가 얇고,
+        그 분포로 만든 정규화 std가 좁아 이탈 상태가 ±10 클리핑으로 증폭.
+
+[중간·백업] old/00_distilled_v2_dagger2_backup (2026-09-09)
+  결정론 40만 + 전문가 자체 가우시안 노이즈 실행(DART식, 라벨=평균) 40만,
+  BC 40 epoch + DAgger 2회(명령당 2만)
+  9/10 명령 0.96~1.14, 낙상 0. cw 0.78 (앵커 0.28m 드리프트로 종료)
+
+[채택] 00_distilled (2026-09-09) — v2에서 이어 DAgger 라운드 3·4 추가
+  --init-model 이어가기, DAgger 명령당 3만 x 2, 총 180만 샘플, 최종 검증 MSE 0.0017
+  명령별 전문가 대비 리턴 (10 에피소드, 낙상):
+    forward 1.00 / left 0.98 / right 0.99 / diag_fl 0.98 / diag_fr 1.00
+    backward 0.95 / diag_bl 1.00 / diag_br 1.00 / ccw 1.01 / cw 0.60   (cw 외 낙상 0)
+  cw 진단: yaw 0.592 rad/s 정상, 앵커가 서서히 밀려 결정론 궤적 729스텝에 종료.
+    행동 노이즈 0.05에서 8회 중 5회 1000스텝 생존 -> 앵커 경계선의 칼날 상태.
+    전문가 자체도 여유 36스텝(0.2m 초과 최장 24/60). BC 라벨에 앵커 복귀 행동이
+    없어 DAgger로 개선되지 않음(0.78->0.60, 단일 궤적 잡음 수준). 앵커 비용과
+    종료 페널티가 보상에 있는 RL 단계에서 교정 예정 — 알려진 출발 조건으로 기록.
+
+[중단] 01_transition_stage1 첫 시도 (2026-09-09 14:57~15:30, 4.25M 스텝)
+  run: old/01a_transition_stage1_aborted_anchor_terminate (이동 전 runs/.../20260909-145708-553412, console_stage1_aborted.log)
+  옛 앵커 의미(0.2m/60스텝 종료). 2M 점검: 붕괴 없음(ep_rew −9k 저점 후 +4.2k, ep_len 255→717,
+  EV 0.51, KL 0.003~0.008). 그러나 회전 진입 전환의 54%가 관성 미끄러짐(0.44 m/s → 앵커 0.37m)
+  으로 종료 — 정책이 고칠 수 없는 규칙 문제라 설계 변경 후 재시작.
+
+[완료] 01_transition_stage1 (2026-09-09 15:33~21:05, 40,001,536 스텝) — 앵커 근접 보상 의미
+  설정: training/configs/ppo_unified_transition_stage1.yaml
+  run: 01_transition_stage1 (이동 전 runs/ppo_unified_transition_stage1/20260909-153324-183674)
+  변경점: anchor_terminate false, 근접 보상 10·max(0, 1−d/0.2) (+기존 포화 비용 유지)
+  전환 커리큘럼(align, 1~4회, dwell 100, 초기 위상 무작위, horizon 1000), 40M, 평가 10 에피소드
+  resume: 00_distilled, lr 1e-4 / ep 2 / target_kl 0.04 / gamma 0.99, fps ≈ 2,150 (예상 5.2시간)
+  최고 평가: 22,624 @ 27.5M | 마지막 19,244 | 마지막 10회 평균 15,115 (평가 편차 큼: 10 에피소드·무작위 전환)
+  말기(마지막 50 롤아웃 평균): ep_rew 13.0K (초반 −16K), ep_len 873, 전환 후 100스텝 내 실패 0.099 (초반 0.123),
+       전환 후 50스텝 보상 −8.5 (초반 −31.9), KL 0.0010 (유휴), clip 0.0015, EV 0.921, std 0.301
+  도착 명령별 실패율(말기): diag_fr 0.33, diag_bl 0.33 (δ=203 계열), ccw 0.10, diag_br 0.09, 나머지 ≤0.06
+  중간 사건: 1.5M 부근 KL 0.033·clip 0.24·EV≈0 과도기(보상 분포 변화에 critic 지연) → 4M 이후 회복
+  판단: 표준 레시피 — KL 유휴이므로 n_epochs 2→3으로 Stage 2 (final 재개, lr 1e-4·target_kl 0.04 유지).
+        평가 에피소드 10→20으로 best 선택 잡음 완화. 위험 도착쌍(δ=203)은 균등 분포 유지하며 추이 관찰.
+
+[완료] 02_transition_stage2 (2026-09-09 21:07 ~ 09-10 03:08, +40M → 누적 80,003,072)
+  설정: training/configs/ppo_unified_transition_stage2.yaml
+  run: 02_transition_stage2 (이동 전 runs/ppo_unified_transition_stage2/20260909-210657-079880)
+  Stage 1 final 재개, n_epochs 2->3 (KL 유휴 처방), lr 1e-4 / target_kl 0.04 / gamma 0.99 유지
+  평가 20 에피소드, 40M 추가 (누적 80M), fps ≈ 2,140 (예상 5.2시간, 02:20경 완료)
+  최고 평가: 24,102 @ 62.8M | 마지막 16,893 | 마지막 10회 평균 16,965 (Stage 1 말기 15,115 대비 +12%)
+  말기(마지막 50 롤아웃 평균): ep_rew 15.0K (초반 14.8K, 횡보), ep_len 892, 전환 후 100스텝 실패 0.097 (정체),
+       전환 후 50스텝 보상 −9.6, KL 0.0028 (유휴), clip 0.011, EV 0.926, std 0.302 (고정)
+  도착 명령별 실패율(말기): diag_bl 0.35, diag_fr 0.33 (δ=203 계열 그대로), diag_fl 0.15, backward 0.14, 나머지 ≤0.09, ccw/cw 0
+  판단: ep 3으로도 KL 유휴 지속 — 검증 레시피의 레버 소진. 신뢰 영역 여유(1/14)를 쓰는 옵티마이저 조정으로
+        lr 1e-4→2e-4 (target_kl 0.04 조기중단이 안전장치), ep 3·γ·환경 불변 → Stage 3.
+        δ=203 도착 실패 0.33은 구조적 원인 진단 병행 (정렬 품질 분석).
+
+[완료] 03_transition_stage3 (2026-09-10 03:11 ~ 09:10, +40M → 누적 120,004,608) — 3-stage 루프 종료
+  설정: training/configs/ppo_unified_transition_stage3.yaml
+  run: 03_transition_stage3 (이동 전 runs/ppo_unified_transition_stage3/20260910-031109-317490)
+  Stage 2 final 재개, lr 1e-4→2e-4 (KL 유휴 지속 처방), ep 3 / target_kl 0.04 / γ 0.99 유지, 40M (누적 120M), fps ≈ 2,190
+  병행 진단 (Stage 2 정책, 정렬 품질·진폭 조절 실험):
+    - gait 부호 가족 2개: {forward, backward, diag_fl, diag_br, left} vs {right, diag_fr, diag_bl}(δ+180 거울 가족).
+      가족 내 정렬 유사도 13~14, 가족 간 5~6 (어느 위상에서도 관절 ~9개 부호 반전).
+    - diag_fr 진입: 정책 낙상 0~0.83(출발별) → 20스텝 정지 후 시작하면 ~0 → 진폭 조절로 피할 수 있는 실패
+      (정책이 "잠깐 멈춤"을 발견 못 함: 14차원 동시 저진폭 패턴은 가우시안 탐색으로 찾기 어려움).
+    - diag_bl(역재생 δ=203) 진입: 정지해도 낙상 0.17~0.83(오히려 악화) → 정렬 위상 자체가 나쁜 시작점
+      (가족 간엔 유사도가 고르게 낮아 argmax가 사실상 임의 위상). 상태 인식 정렬(관절 속도 부호 기준) 등 env 측 개선 후보.
+    - right 진입은 정책이 이미 처리(0~0.17), 정지는 오히려 해로움.
+  최고 평가: 23,101 @ 111.3M | 마지막 13,107 | 마지막 10회 평균 16,179 (Stage 2 16,965과 잡음 범위)
+  말기(마지막 50 롤아웃 평균): ep_rew 14.6K (초반 16.5K), ep_len 893, 전환 후 100스텝 실패 0.074,
+       전환 후 50스텝 보상 −8.2, KL 0.0103~0.0117 (정상 범위 — lr 2e-4로 유휴 탈출), clip 0.059, EV 0.918, std 0.304
+  도착 명령별 실패율(말기): diag_fr 0.26 (0.33→), diag_bl 0.12 (0.35→ 크게 개선), ccw 0.12 (0→), backward/diag_fl/diag_br 0.10~0.12, 나머지 ≤0.07
+  판단: 리턴은 정체(평가 잡음 내), 어려운 전환(diag_bl)은 개선. 체크포인트 선택은 고정 시드 벤치마크로 결정.
+
+고정 시드 벤치마크 (2026-09-10, 무작위 전환 에피소드 40개, 결정론, horizon 1000):
+  체크포인트        리턴 평균±sd        길이  완주율  전환실패(100)  δ=203 도착 실패
+  S1 final          16,314 ± 13,469     843   0.65    0.164 (73)     0.25 (16)
+  S2 best @62.8M    17,023 ± 14,247     868   0.72    0.137 (73)     0.18 (17)
+  S2 final          16,843 ± 16,712     913   0.80    0.090 (78)     0.11 (19)
+  S3 best @111M     16,744 ± 15,308     897   0.80    0.083 (72)     0.17 (18)
+  S3 final          16,414 ± 17,063     898   0.75    0.066 (76)     0.06 (17)
+  판정: 리턴은 편차 대비 동급, 전환 지표는 stage를 거치며 단조 개선. 대표 권고 = S3 final (전환 강건성),
+        차선 = S2 final (생존율). 정책 폴더 정리는 사용자 승인 후.
+
+3. 폴더 구성 (2026-09-10 정리)
+-------------------------------
+  00_distilled/            증류 정책 (model.zip, vecnormalize.pkl, metadata.json, DISTILL_REPORT.md, dataset*.npz)
+  01_transition_stage1/    Stage 1 run 전체 (checkpoints, evaluation, tensorboard, videos, monitor, final_model.zip, vecnormalize.pkl, console_stage1.log)
+  02_transition_stage2/    Stage 2 run 전체
+  03_transition_stage3/    Stage 3 run 전체 — 현재 권장
+  old/                     착오 방지용 격리: 01a_transition_stage1_aborted_anchor_terminate(옛 앵커 종료 규칙, 4.25M 중단),
+                           00_distilled_v1_det_only(공변량 이동 실패본), 00_distilled_v2_dagger2_backup(DAgger 2회 중간본)
+  YAML resume 경로(stage2/3)는 이 폴더 기준으로 갱신됨.
+
+4. Stage 4 — 전환 시작 위상 규칙 lat (2026-09-14 자율 캠페인) [완료 — 이득·손해 미확인, 대표 유지]
+--------------------------------------------------------------
+  설정: training/configs/ppo_unified_transition_stage4.yaml (정리 시 04_transition_stage4)
+  run: runs/ppo_unified_transition_stage4/20260914-181034-263440_ppo_unified_transition_stage4 (18:10 착수, fps ≈ 1,985 단독)
+  03 final 재개. 변경: 환경 align_rule 'lat'(가로 부호 우선 시작 위상, phase_align.py) — 배포 규칙과 학습 분포 일치.
+  나머지(보상·앵커 근접 보상·커리큘럼 1~4회/dwell 100/horizon 1000·무작위 초기 위상·lr 2e-4/ep 3/KL 0.04·40M) Stage 3과 동일.
+  근거: 경로 추종 재실험(시드 10 짝지음)에서 합친 정책+lat가 최선(다른 5조합에 22/8~24/6), 규칙만의 이득 0.08 m.
+  판정 계획: 고정 시드 40판 벤치마크(sign/lat 규칙 각각)와 경로 9종 × 시드 10 검증을 Stage 3 final과 짝지어 비교.
+  결과 (2026-09-15 01:11 완료, 160.0M, 약 7시간, fps 1,520~1,610; 검토 에이전트 2회 검토 반영):
+    학습 곡선(처음 10% → 마지막 10%, 확률 정책·lat 규칙): ep_rew 16,144 → 16,867(+4%), 전환 뒤 100스텝 실패 .061 → .049
+      (앞 70%는 .062로 평평, 뒤 30%에서만 하락), KL .012 → .014, EV .92. 목표별(gait_provider 순서: forward, left, right,
+      diag_fl, diag_fr, backward, diag_bl, diag_br, ccw, cw): backward .098→.043, right .037→.016, diag_fr .155→.118,
+      diag_bl .109→.072, diag_br .091→.055 개선 / forward .047→.076, diag_fl .045→.072 악화 / 나머지 불변.
+      (학습 중 관찰이며 10개 목표 다중 비교 — 결정론 벤치마크에서 목표별 재확인 전에는 참고만.)
+    고정 시드 40판 벤치마크 (runs/unified_bench/s3s4_{sign,lat}.json, 에피소드별 기록 포함):
+      규칙   체크포인트   리턴 평균±sd        길이  완주율  전환 뒤 100스텝 낙상  diag_fr·diag_bl 전환 직후 낙상
+      sign   S3 final     16,414 ± 17,063     898   0.75    0.066 (5/76)          0.06 (1/17)
+      sign   S4 final     15,750 ± 16,417     898   0.75    0.105 (8/76)          0.22 (4/18)
+      lat    S3 final     14,635 ± 17,506     884   0.72    0.096 (7/73)          0.22 (4/18)
+      lat    S4 final     17,610 ± 11,559     890   0.80    0.082 (6/73)          0.18 (3/17)
+      시드 짝지음(lat): 리턴 S4>S3 22/18 p=.64, 낙상 S4만 2판/S3만 3판, 완주 S4만 6판/S3만 3판 p=.51; 평균 리턴 차이의 절반 이상은
+        시드 5019 한 판(S3 −68,689, 생존)에서 나옴 — 편차 감소(17,506→11,559)도 그 한 판의 산물.
+      시드 짝지음(sign): 총 낙상 10판 대 10판 동일, 완주율 동일; 전환 직후 낙상 8 대 5의 증가분은 전부 diag_fr·diag_bl 전환(4/18 대 1/17,
+        p=.34), 나머지 전환은 4/58 대 4/59. "lat 특화" 해석은 이 표본으로 판단 불가.
+      **출발 전제 정정:** "S3에 lat를 쓰면 벤치마크가 나빠진다(.096 vs .066)"는 짝지으면 lat만 낙상 6판/sign만 4판(p=.75), 완주 5 대 6,
+        리턴 17/23(p=.43)으로 40판 잡음 안. 검출력: .066 vs .096 차이를 80%로 잡으려면 후보당 전환 ≈1,300회(≈700판), 200판은 ≈33%.
+    경로 추종 (runs/path_validation/s4_lat.json vs S3+lat, 새 커맨더 기본값, 경로 9 × 시드 10 짝지음): 평균 오차 41/2/47 Δ+.007 p=.59
+      (0.173 vs 0.166 m), 최대 46/44, 시간 44/46, 전환 49/3/38, 완주 90/90 대 90/90. 경로별 차이는 열 쌍씩이라 어느 것도 유의하지 않음
+      (Holm 후 ≥.88). S3 쪽은 S4와 같은 스크립트로 다시 돌려 확인(s3_lat_cur.json).
+    판정: 이득도 손해도 확인되지 않음. 바꿀 근거가 없으므로 대표 = 03 final 유지. 함께 쓸 규칙은 미정 — 경로 추종 목적이면 lat(시간 −16%,
+      p=.0001; 오차 차이 없음), 벤치마크 재현이면 sign. Stage 4 run은 runs에 두고 정리(04_transition_stage4)는 승인 뒤.
+    후속 후보: 벤치마크에 전환 단위 기록(출발·도착 명령, 낙상, 스텝) 추가 + 판 수 확대(≈700판 또는 "2배 차이만" 목표 170판);
+      벤치마크(무작위)와 경로 추종(커맨더)의 전환 종류 분포 비교; 시드 5019·5017의 "생존했으나 큰 음수 리턴" 비용 분해.

@@ -1,0 +1,78 @@
+schema_version: 2
+experiment:
+  name: ppo_unified_transition_stage1
+  seed: 42
+  output_dir: runs/ppo_unified_transition_stage1
+environment:
+  id: horcrux_env/plane-unified-v0
+  kwargs:
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+    anchor_terminate: false
+    anchor_proximity_reward_weight: 10.0
+    anchor_proximity_radius: 0.2
+    switch_enabled: true
+    switch_count_range:
+    - 1
+    - 4
+    switch_min_dwell: 100
+    switch_mode: align
+    random_init_phase: true
+    episode_horizon: 1000
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-08
+action_normalization:
+  enabled: true
+resume:
+  model_path: policies/unified/00_distilled/model.zip
+  vecnormalize_path: policies/unified/00_distilled/vecnormalize.pkl
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.99
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch:
+    - 512
+    - 512
+    - 512
+    - 512
+    - 512
+    activation_fn: tanh
+training:
+  total_timesteps: 40000000
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 10
+  deterministic: true
+checkpointing:
+  enabled: true
+  save_freq: 500000
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

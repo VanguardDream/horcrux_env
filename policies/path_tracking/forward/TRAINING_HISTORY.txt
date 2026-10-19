@@ -1,271 +1,122 @@
-Horcrux 뱀 로봇 경로 추종 정책 이력 - 전진 방향
-==================================================
+Horcrux 뱀 로봇 경로 추종 정책 이력 - 전진(+X)
+================================================
+
+상태 (2026-08-31): 유효한 전진 정책 없음.
+
+- 기존 delta=23 계보(01~05, 최고 208,913)는 gait 파라미터 착오로
+  ../old/forward_delta23/ 으로 이동됨. 상세는 그쪽 원장 참조.
+- 올바른 전진 gait는 [30, 30, 40, 40, 0] (원장 6절 및 plane_v3.py
+  방향 주석 테이블 근거). delta=0 재학습은 아직 미수행.
+- 별개로 gait를 쓰지 않는 direct-torque 전진 파이프라인
+  (plane-direct-torque-v0, stage 1~5)이 runs/ppo_plane_dt_forward_* 에 있음.
+
+delta=0 재학습 완료 시 이 폴더에 좌/우측과 동일한 규약(번호 디렉터리,
+원본 run 전체 보관)으로 새 계보를 기록한다.
+
+[진행 중] delta=0 Stage 1 from scratch (2026-08-31 시작)
+  설정: training/configs/ppo_plane_forward_delta0_from_scratch_long.yaml
+  현재 위치: 01_forward_delta0_from_scratch_long/
+  (이동 전 run: runs/ppo_plane_forward_delta0_from_scratch_long/20260831-215034-678652)
+  gait_params: [30, 30, 40, 40, 0], joy_input: [1, 0, 0]
+  보상 계수: 좌/우/후진과 동일 (rotation_norm_cost_weight=10.0 포함)
+  lr 1e-4, n_epochs 2, target_kl 0.04, 28,413,952 스텝
+  계획: 3-stage 계보 (stage 경계마다 KL/clip 진단으로 optimizer만 튜닝, 총 85.2M)
+  다음 캠페인 예고: 전진-좌 45도 대각 (delta=23, joy [0.707, 0.707, 0])
+
+[완료] delta=0 Stage 1 결과 (2026-09-01)
+  현재 위치: 01_forward_delta0_from_scratch_long/ (28,413,952 스텝, 18,696초 = 5.2h, 1,519 fps)
+  최고 평가 리턴: 173,776.5 @ 27,900,000 (좌측 Stage 1의 173,123과 동급)
+  마지막 평가 리턴: 170,909.7 @ 28,400,000 (전 episode 6,000스텝 완주)
+  x_velocity: +0.488, y_velocity: 0.017 (횡표류 없음), dir_sim: 0.782, yaw: 7.35도
+  말기 approx_kl 0.0123 / clip 0.101 / 조기중단 14회 / std 0.735 / EV 0.788
+  판단: delta=0 전진 gait 정상 작동 확인. 여유 있는 트러스트 리전 → Stage 2는
+  검증 레시피대로 n_epochs 2->3 (lr 1e-4, target_kl 0.04 유지).
+
+[진행 중] delta=0 Stage 2 (2026-09-01 시작)
+  설정: training/configs/ppo_plane_forward_delta0_continue_stage2.yaml
+  현재 위치: 02_forward_delta0_continue_stage2/
+  Stage 1 final + vecnormalize에서 resume (누적 28,413,952 -> 목표 56,827,904)
+
+[완료] delta=0 Stage 2 결과 (2026-09-01)
+  현재 위치: 02_forward_delta0_continue_stage2/
+  (이동 전 run: runs/.../20260901-030334-369562) (28.4M 추가 -> 누적 56,827,904, 15,035초 = 4.2h, 1,889 fps)
+  최고/마지막 평가 리턴: 222,726.8 @ 56,663,952 (Stage 1 대비 +28%,
+  구 delta=23 계보 5단계 최고 208,913 추월, 종료 시점까지 상승 중)
+  x_velocity: +0.593, y_velocity: 0.028, dir_sim: 0.827, yaw: 5.66도
+  말기 approx_kl 0.038~0.055 (target 상회) / clip 0.402 / 조기중단 233회 / std 0.425
+  판단: 좌/우 Stage 2와 동일한 트러스트 리전 포화 → Stage 3는 검증 처방
+  (lr 1e-4 -> 5e-5, n_epochs 3 -> 2, target_kl 유지).
+
+[진행 중] delta=0 Stage 3 (2026-09-01 시작)
+  설정: training/configs/ppo_plane_forward_delta0_continue_stage3.yaml
+  현재 위치: 03_forward_delta0_continue_stage3/
+  Stage 2 final + vecnormalize에서 resume (누적 56,827,904 -> 목표 85,241,856)
+
+[완료] delta=0 Stage 3 결과 (2026-09-01) — 캠페인 종료
+  현재 위치: 03_forward_delta0_continue_stage3/
+  (이동 전 run: runs/.../20260901-071624-711159) (28.4M 추가 -> 누적 85,241,856, 14,998초 = 4.2h, 1,894 fps)
+  최고 평가 리턴: 232,265.5 @ 81,327,904 (Stage 2 대비 +4.3%)
+  마지막 평가 리턴: 228,387.8 @ 85,077,904 (전 episode 6,000스텝 완주)
+  x_velocity: +0.606, y_velocity: 0.032, dir_sim: 0.832, yaw: 5.05도
+  말기 approx_kl 0.0275 / clip 0.274 / 조기중단 3회(Stage 2: 233회) / std 0.340
+  판단: 보수화 처방이 좌/우와 동일하게 작동(KL 진정 + 추가 개선).
+
+=== delta=0 계보 요약 ===
+  Stage 1 (28.4M): 173,777 | lr 1e-4, ep 2
+  Stage 2 (56.8M): 222,727 | ep 2->3 (+28%)
+  Stage 3 (85.2M): 232,266 | lr 5e-5, ep 2 (+4.3%)
+  총 학습 시간 48,729초 = 13.5h. 현재 대표 전진 정책:
+    policies/path_tracking/forward/03_forward_delta0_continue_stage3/
+      evaluation/best_model.zip + best_model_vecnormalize.pkl
+  주: 구 delta=23 계보(최고 208,913)와는 rotation_norm_cost_weight가
+  0.5 vs 10.0으로 달라 리턴 직접 비교 불가 — 새 계보는 20배 큰 yaw 비용을
+  내면서도 더 높은 리턴. 2026-09-01 사용자 지시로 번호 디렉터리 정리 완료 (01~03, 콘솔 로그 포함).
+
+[완료] 인계 시작(moving-state init) iteration 1 (2026-09-10 13:39 ~ 21:10, 28.4M)
+  설정: training/configs/ppo_plane_forward_moving_init_iter1.yaml  (정리 시 04_forward_moving_init_iter1)
+  run: runs/ppo_plane_forward_moving_init_iter1/20260910-133900-203780_ppo_plane_forward_moving_init_iter1
+  환경: horcrux_env/plane-moving-init-v0 — 보상·종료·γ 0.95 stage 3와 동일, 시작 분포만 혼합:
+        정지 시작 50% / 인계 시작 50% (은행 runs/moving_state_bank/bank_iter1.npz 220,000 상태,
+        align 80% · 무작위 위상 20%, 인계 에피소드 1000스텝 절단)
+  stage 3 final 재개, lr 1e-4 / ep 2 / target_kl 0.04, 28.4M, fps ≈ 1,240 (3개 병렬), 완료 ≈ 20:00
+  목적: 다른 정책이 움직이던 상태에서 전환된 순간의 진입 강건성 학습 (정상 주행 성능 유지 조건)
+  결과: 최고 평가(혼합) 191,825 @99.7M | 정지 리턴 221K→223K 유지 | 인계 리턴 18.0K→27.6K, 길이 740→819 | KL 0.044 포화, std 0.34→0.298
+  결정론 평가(전→후, final): 정지 속도 0.617→0.620, 리턴 37,990→37,931 | 진입 실패 평균 0.167→0.144 (잡음 범위; ccw .50→.35, cw .45→.40)
+  판정: 정상 주행 유지(혼합 분포 효과)되나 결정론 진입 실패율은 개선 없음 → 낙상 비용(unhealthy_cost 2, γ 0.95) 부족 가설, iteration 2에서 수정 (캠페인 원장 참조)
+
+[완료] 인계 시작 iteration 2 (2026-09-10 21:42 ~ 2026-09-11 05:13, 28.4M)
+  설정: training/configs/ppo_plane_forward_moving_init_iter2.yaml  (정리 시 05_forward_moving_init_iter2)
+  run: runs/ppo_plane_forward_moving_init_iter2/20260910-214156-621229_ppo_plane_forward_moving_init_iter2
+  iteration 1 final 재개. 변경: unhealthy_cost_weight 2→200 (인계 env가 종료 스텝에 1회 보정 적용 —
+  plane_v3 이중 호출 결함으로 기존 계보는 낙상 페널티를 받은 적 없음), lr 1e-4→5e-5 (KL 포화). 나머지 동일.
+  fps ≈ 1,215 (3개 병렬)
+  결과: 최고 평가(혼합) 194,908 @126.7M | 정지 리턴 224K→228K 유지 | 인계 리턴 22.4K→28.4K, 길이 764→842 | 학습 중 인계 후 100스텝 실패(확률적) 0.233→0.135 | KL 0.045 포화, clip 0.33, std 0.298→0.262
+  결정론 평가(기준→iter1→iter2 final / best, eval_iter2_final.json·eval_iter2_best.json): 정지 속도 0.617→0.620→0.626, 리턴 37,990→37,931→38,932 | 진입 실패 평균 0.167→0.144→0.178 / 0.183 (잡음 범위; final 출발별 cw .70, diag_fr .35, ccw .30, right .25, 나머지 0)
+  확률적 평가(출발 9×10상태): 기준 결정론 0.200 / 확률적 0.222, iter2 final 0.200 / 0.178 — 결정론·확률적 차이 작음
+  판정: 회전(cw/ccw)·diag_fr 출발 진입이 실패의 전부. 벌점 상향만으로는 개선 없음 → iteration 3 후보 (캠페인 원장 참조)
+
+[완료] 인계 시작 iteration 3 (2026-09-11 17:05 ~ 2026-09-12 00:45, 28.4M)
+  설정: training/configs/ppo_plane_forward_moving_init_iter3.yaml  (정리 시 06_forward_moving_init_iter3)
+  run: runs/ppo_plane_forward_moving_init_iter3/20260911-170530-646902_ppo_plane_forward_moving_init_iter3
+  원본(03 stage 3 final)에서 재개. 변경: 인계 에피소드 한정 매 스텝 항 2개 추가 — cost_tilt(|roll| 15°~45° 비례 −20/스텝, 75° 이상 −40 캡),
+  cost_push_tilt(−20 × 기울기 비율 × 평균 진폭/최대 진폭). 벌점 200 1회·γ 0.95·은행·혼합 50%·align 80%·절단 1000·lr 1e-4/ep 2/KL 0.04 동일.
+  근거: 넘어지기 전 ~15스텝에 신호가 없고 늦은 벌점은 γ로 약해짐 → 정책이 관측하는 기울기로 조건화한 촘촘한 신호. 3개 병렬, 완료 ≈ 23:30
+  성공 기준: 진입 실패 0.167 → 0.10 이하, 정지 주행 속도 ≥ 97% 유지
+  결과: 최고 평가(혼합) 181,330 @88.2M | 정지 리턴 217K→215K | 인계 리턴 3.6K→2.6K | 학습 중 인계 후 100스텝 실패 0.156→0.081
+        cost_tilt −2.11→−2.47, cost_push_tilt −0.69→−0.81 | KL 0.032→0.035, std 0.34→0.333
+  결정론 평가(eval_iter3_final.json / eval_iter3_best.json): 정지 속도 0.617→0.611(리턴 37,990→36,792, −3.2%) | 진입 실패 0.167→0.117 / best 0.172 — final은 개선(기준 0.10 근접, 표준오차 ~0.03)
+  시작 위상 규칙 비교(eval_phase_rules_iter3_final.json, 같은 20상태): 부호 정렬 0.172 → 가로 먼저 0.089 (원본 전문가는 0.200 → 0.144)
+  판정: 세 전문가 중 유일하게 개선. 가로 먼저 규칙과 합치면 0.089 (캠페인 원장 iteration 4 후보 참조)
+
+[완료] 인계 시작 iteration 4 (2026-09-12 11:20 ~ 18:55, 28.4M)
+  설정: training/configs/ppo_plane_forward_moving_init_iter4.yaml  (정리 시 07_forward_moving_init_iter4)
+  run: runs/ppo_plane_forward_moving_init_iter4/20260912-112002-168596_ppo_plane_forward_moving_init_iter4
+  원본(03 stage 3 final)에서 재개. 변경: 인계 시작 위상 규칙 align_rule='lat'(가로 부호 우선, 80%) + 무작위 20%. 벌점 200 1회, 새 항 없음.
+  나머지(은행·혼합 50%·절단 1000·γ 0.95·lr 1e-4/ep 2/KL 0.04·28.4M) iteration 1과 동일. fps ≈ 1,310 (3개 병렬), 완료 ≈ 19:15
+  근거: iteration 1~3은 정책이 구하기 어려운 출발 위상(부호 정렬)에서 학습해 무효. lat 규칙은 학습 없이 진입 실패 .200→.144(이 전문가).
+  성공 기준(lat 규칙 평가): 진입 실패 0.144 → 0.08 이하, 정지 주행 속도 ≥ 97% 유지. sign 규칙 값도 병기.
+  결과: 최고 평가 191,003 @99.7M | 정지 리턴 220K→223K | 인계 리턴 26.6K→29.0K | 학습 중 인계 후 100스텝 실패 0.134→0.083 | KL 0.049→0.044, std 0.338→0.299
+  결정론 평가(sign, eval_iter4_final.json): 정지 속도 0.617→0.623(리턴 37,990→38,225) | 진입 실패 0.167→0.200
+  lat 규칙 평가(eval_phase_rules_iter4_{final,best}.json, 같은 20상태): 출발선(원본) 0.144 → final 0.133 / best 0.094 — 소폭 개선(best는 기준 0.08 근접). sign은 0.200→0.194
+  판정: 남은 실패는 회전 출발(ccw .50, cw .40)과 right(.15). 선형 출발은 거의 0 (캠페인 원장 참조)
 
-작성일: 2026-07-18
-환경: horcrux_env/plane-v0
-정책 프레임워크: Stable-Baselines3 PPO
-목적: 뱀 로봇 경로 추종에서 로봇 기준 전진(+X) 명령을 수행하는 정책 보관
-명령 벡터: joy_input = [1.0, 0.0, 0.0]
-
-보관 방식:
-  2026-07-18에 아래 5개의 원본 run 디렉터리를 runs/에서 이 폴더로 이동했다.
-  각 단계는 정책만 추출한 복사본이 아니라 영상, TensorBoard 이벤트, monitor,
-  체크포인트, 평가 기록과 실행 설정을 모두 포함하는 완전한 학습 run이다.
-  아래에 적힌 runs/... 경로는 이동 전 원래 위치를 나타내는 역사 기록이다.
-
-
-1. 현재 권장 전진 정책
-----------------------
-
-디렉터리:
-  05_forward_x_long
-
-평가 성능이 가장 높은 배포용 조합:
-  05_forward_x_long/evaluation/best_model.zip
-  05_forward_x_long/evaluation/best_model_vecnormalize.pkl
-
-최고 평가 리턴:
-  208,913.447632 (누적 timestep 45,765,296)
-
-마지막까지 학습된 조합:
-  05_forward_x_long/final_model.zip
-  05_forward_x_long/vecnormalize.pkl
-
-마지막 평가 리턴:
-  208,703.244596 (평가 timestep 47,565,296)
-
-주의:
-  모델 ZIP과 VecNormalize PKL은 반드시 같은 이름 계열의 파일끼리 사용한다.
-  evaluation/best_model.zip에는 evaluation/best_model_vecnormalize.pkl을 사용한다.
-  final_model.zip에는 같은 단계 루트의 vecnormalize.pkl을 사용한다.
-  서로 다른 단계 또는 best/final 사이의 통계 파일을 섞지 않는다.
-
-
-2. 정책 계보
-------------
-
-01_initial_sb3_baseline/best
-  -> 02_lower_lr_epoch_finetune/final
-  -> 03_lower_lr_epoch_long/final
-  -> 04_target_kl_stabilization/final
-  -> 05_forward_x_long/best 또는 final
-
-각 화살표는 왼쪽 정책과 그에 대응하는 VecNormalize 통계를 불러와
-오른쪽 단계에서 reset_num_timesteps=False로 추가 학습했음을 의미한다.
-기본 Gymnasium 환경은 원시 observation과 물리 action 공간을 유지했다.
-학습에서는 SB3 VecNormalize로 observation을 정규화하고, action wrapper로
-정책의 [-1, 1] 출력을 물리 action [0, 2.7]로 변환했다.
-
-
-3. 단계별 변경 이력
--------------------
-
-[01] 01_initial_sb3_baseline
-
-원본 run:
-  runs/ppo_plane/20260716-113839-721175_ppo_plane_baseline
-
-학습 내용:
-  - SB3 PPO의 첫 본 학습
-  - 추가 timestep: 7,864,320
-  - learning_rate: 0.0003
-  - n_epochs: 5
-  - n_steps: 512, batch_size: 512, gamma: 0.95
-  - 8개 SubprocVecEnv
-  - network: [512, 512, 512, 512, 512], tanh
-  - observation/action normalization 사용
-
-결과:
-  - 최고 평가 리턴: 183,653.853900 @ 7,850,000
-  - 마지막 평가 리턴: 182,642.686237
-  - 최근 KL 평균: 0.172709
-  - 최대 KL: 3.802117
-  - 최근 clip fraction: 0.588025
-
-다음 단계로 넘어간 이유:
-  정책 성능은 높아졌지만 KL과 clip fraction이 매우 높아 PPO 업데이트가
-  불안정했다. 이 단계의 final이 아니라 evaluation/best 정책을 02의 시작점으로 사용했다.
-
-
-[02] 02_lower_lr_epoch_finetune
-
-원본 run:
-  runs/ppo_plane_finetune/20260717-133032-688755_ppo_plane_kl_finetune
-
-시작 정책:
-  01_initial_sb3_baseline/evaluation/best_model.zip
-  01_initial_sb3_baseline/evaluation/best_model_vecnormalize.pkl
-
-변경 내용:
-  - learning_rate: 0.0003 -> 0.0001
-  - n_epochs: 5 -> 3
-  - 다른 PPO 및 환경 설정은 유지
-  - 안정성 확인을 위한 짧은 추가 학습: 100,000 요청
-  - rollout 단위 처리 후 최종 누적 timestep: 7,952,400
-
-결과:
-  - 평가 리턴: 183,204.100331 @ 7,950,000
-  - KL 평균: 0.039144
-  - 최대 KL: 0.062281
-  - clip fraction 평균: 0.318912
-
-판단:
-  성능을 유지하면서 KL을 크게 낮추는 데 성공했다. 02 final을 03의 시작점으로 사용했다.
-
-
-[03] 03_lower_lr_epoch_long
-
-원본 run:
-  runs/ppo_plane_finetune_continued/20260717-133728-753405_ppo_plane_kl_continued
-
-시작 정책:
-  02_lower_lr_epoch_finetune/final_model.zip
-  02_lower_lr_epoch_finetune/vecnormalize.pkl
-
-학습 내용:
-  - learning_rate: 0.0001
-  - n_epochs: 3
-  - 추가 timestep: 7,864,320
-  - 최종 누적 timestep: 15,816,720
-
-결과:
-  - 최고 평가 리턴: 197,240.874894 @ 15,052,400
-  - 마지막 평가 리턴: 196,728.894275
-  - 최근 KL 평균: 0.071433
-  - 최대 KL: 0.140089
-  - 최근 clip fraction: 0.442259
-  - 최근 x 속도: 0.494740
-  - 최근 방향 유사도: 0.826953
-
-다음 단계로 넘어간 이유:
-  정책 성능은 개선됐지만 장기 학습에서 KL과 clip fraction이 다시 상승했다.
-  03 final을 사용해 더 보수적인 optimizer 설정을 시험했다.
-
-
-[04] 04_target_kl_stabilization
-
-원본 run:
-  runs/ppo_plane_curriculum_x_finetune/20260717-180854-075721_ppo_plane_curriculum_x_kl_finetune
-
-시작 정책:
-  03_lower_lr_epoch_long/final_model.zip
-  03_lower_lr_epoch_long/vecnormalize.pkl
-
-변경 내용:
-  - learning_rate: 0.0001 -> 0.00005
-  - n_epochs: 3 -> 2
-  - target_kl: None -> 0.04
-  - 추가 timestep: 1,048,576 (256 PPO iterations)
-  - 최종 누적 timestep: 16,865,296
-
-결과:
-  - 최고 평가 리턴: 199,391.464849 @ 16,516,720
-  - 마지막 평가 리턴: 198,293.536758
-  - 최근 KL 평균: 0.030474
-  - 최대 KL: 0.041635
-  - 최근 clip fraction: 0.243936
-  - 최근 x 속도: 0.498297
-  - 최근 방향 유사도: 0.828515
-
-판단:
-  KL과 clip fraction을 낮추면서 성능도 개선됐다. 이 하이퍼파라미터를 전진
-  방향 장기 학습의 기본 설정으로 확정하고 04 final을 05의 시작점으로 사용했다.
-
-
-[05] 05_forward_x_long
-
-원본 run:
-  runs/ppo_plane_curriculum_x_long/20260717-200051-649599_ppo_plane_curriculum_x_kl_long
-
-시작 정책:
-  04_target_kl_stabilization/final_model.zip
-  04_target_kl_stabilization/vecnormalize.pkl
-
-학습 내용:
-  - learning_rate: 0.00005
-  - n_epochs: 2
-  - target_kl: 0.04
-  - 추가 timestep: 30,720,000 (7,500 PPO iterations)
-  - 최종 누적 timestep: 47,585,296
-  - 실제 학습 시간: 약 10시간 49분
-
-결과:
-  - 최고 평가 리턴: 208,913.447632 @ 45,765,296
-  - 마지막 평가 리턴: 208,703.244596
-  - 최근 KL 평균: 0.052615
-  - 최대 KL: 0.175659 (드문 단일 이상치 포함)
-  - 최근 clip fraction: 0.321181
-  - 최근 rollout return: 202,777.086
-  - 최근 x 속도: 0.518728
-  - 최근 방향 유사도: 0.839605
-
-판단:
-  현재 전진 방향의 최고 정책이다. 배포와 다른 방향 커리큘럼의 시작점에는
-  05 best 정책을 우선 사용한다. 같은 +X 방향으로 더 오래 학습하기보다는
-  방향 커리큘럼을 확장하는 편이 유리하다.
-
-
-4. 각 단계 디렉터리의 실제 run 구조
------------------------------------
-
-evaluation/best_model.zip:
-  해당 run의 evaluation에서 가장 높은 평균 리턴을 기록한 정책.
-
-evaluation/best_model_vecnormalize.pkl:
-  evaluation/best_model.zip이 저장된 시점의 observation 정규화 통계.
-
-evaluation/evaluations.npz:
-  평가 timestep, episode return, episode length 원본 기록.
-
-final_model.zip + vecnormalize.pkl:
-  해당 run의 마지막 timestep 정책과 observation 정규화 통계.
-
-checkpoints/:
-  주기별 정책 ZIP과 각 시점의 VecNormalize PKL.
-
-videos/:
-  학습 도중 callback으로 녹화한 정책 실행 영상.
-
-tensorboard/:
-  PPO, rollout, 환경 지표를 포함한 TensorBoard 이벤트 로그.
-
-monitor/:
-  8개 병렬 환경의 episode monitor CSV.
-
-resolved_config.yaml:
-  실제 학습 실행 시 확정된 전체 설정. 내부 resume 경로는 이동 전 경로를 보존한다.
-
-metadata.json:
-  실행 시각, Git revision, Python 및 주요 패키지 버전.
-
-
-5. 다른 방향 정책을 모을 때의 디렉터리 규칙
-------------------------------------------------
-
-권장 루트 구조:
-  policies/path_tracking/forward/
-  policies/path_tracking/backward/
-  policies/path_tracking/left/
-  policies/path_tracking/right/
-  policies/path_tracking/diagonal_left/
-  policies/path_tracking/diagonal_right/
-
-각 방향 폴더 안에서는 이 폴더와 동일하게 01, 02, 03 순번으로 학습 단계를
-저장한다. TRAINING_HISTORY.txt 첫 부분에 다음 정보를 반드시 기록한다.
-
-  - joy_input 방향 벡터
-  - 시작 모델과 VecNormalize 통계
-  - 변경한 hyperparameter
-  - 추가/누적 timestep
-  - 최고 및 마지막 평가 리턴
-  - KL 평균/최댓값과 clip fraction
-  - 다음 단계가 best 또는 final 중 어느 정책에서 시작했는지
-
-전진에서 다른 방향으로 전환할 때는 급격히 반대 방향으로 바꾸기보다
-전진 -> 대각선 -> 측면 또는 후진과 같이 방향 벡터를 단계적으로 변경하는
-커리큘럼을 권장한다.
-
-
-
-6. 이 정책 학습에 사용된 gait 파라미터가 잘못된 것 같아서, 새롭게 전진 정책을 학습 시킬 필요가 있음.
-현재 [30,30,40,40,23] 파라미터로 학습했는데(환경의 기본 파라미터가 이걸로 되어 있어서..) 향 후 [30,30,40,40,0]으로 진행해야함.

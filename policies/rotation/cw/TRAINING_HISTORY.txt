@@ -1,0 +1,85 @@
+Horcrux 뱀 로봇 제자리 회전 정책 이력 - CW(시계, -yaw)
+========================================================
+
+작성일: 2026-09-06
+환경: horcrux_env/plane-rotation-v0 (v2 안정 우선 설계)
+목표: 제자리(앵커 0.2m 이내)에서 CW 방향 목표 속도(0.5 rad/s) 회전
+joy_input: [0.0, 0.0, -1.0]
+gait_params: [30, 30, 40, 40, 135] (CCW δ=315의 거울쌍)
+보상/건강/γ: CCW v2와 완전 동일 (원장 policies/rotation/ccw/ 참조)
+
+
+1. 현재 권장 CW 정책
+--------------------
+
+아직 없음. Stage 1 진행 중.
+
+
+2. 단계별 학습 이력
+-------------------
+
+[완료] Stage 1 v2 from scratch (2026-09-06)
+  설정: training/configs/ppo_plane_rot_cw_v2_from_scratch_long.yaml
+  run: 01_cw_v2_from_scratch (이동 전 runs/.../20260906-071917)
+  (28,413,952 스텝, CCW Stage 4와 병렬 실행)
+  최고 평가: 14,450 @ 23,300,000 (len 1,071), 마지막 6,527 (len 465)
+  말기: yaw_vel -0.532 (목표 CW 속도 정확), anchor 0.126m, ep_len 353
+  판정: 방향·속도·앵커는 CCW 거울 재현 성공, 생존 길이는 CCW(49.4K) 대비
+  약함 — 전 계보 일관된 좌우 비대칭(CCW>CW)과 부합. KL 7.4e-4 유휴.
+  판단: 표준 레시피 n_epochs 2->3으로 Stage 2 (final 재개).
+
+[완료] Stage 2 v2 (2026-09-06)
+  설정: training/configs/ppo_plane_rot_cw_v2_continue_stage2.yaml
+  run: 02_cw_v2_stage2 (이동 전 runs/.../20260906-110000)
+  (28.4M 추가 -> 누적 56,827,904)
+  최고 평가: 72,250 @ 55,013,952 (len 3,445) — Stage 1 대비 5배, CCW Stage 2(66,713) 추월
+  말기: aligned 0.612, anchor 0.117m, ep_len 743, KL 0.0071, EV 0.008
+  판단: 말기 평가 진동(8~24K) → 보수화(lr 5e-5, ep 2)로 Stage 3.
+
+[완료] Stage 3 v2 (2026-09-06) — CW 캠페인 종료
+  설정: training/configs/ppo_plane_rot_cw_v2_continue_stage3.yaml
+  run: 03_cw_v2_stage3 (이동 전 runs/.../20260906-162555)
+  (28.4M 추가 -> 누적 85,241,856)
+  최고 평가: 88,284 @ 71,027,904 (len 3,956) — Stage 2 대비 +22%
+  마지막 평가: 69,354 (len 3,020), 마지막 10회 평균 43,114
+  말기: aligned 0.608, anchor 0.126m, KL 0.0024, EV 0.011, std 0.792
+
+=== CW v2 계보 요약 ===
+  Stage 1: 14,450 | Stage 2: 72,250 (5배) | Stage 3: 88,284 (+22%)
+  CCW Stage 3(97,757) 대비 -10% — 회전에서도 좌우 비대칭이 소폭 존재.
+  현재 대표: runs/ppo_plane_rot_cw_v2_continue_stage3/
+    20260906-162555-082971/evaluation/best_model.zip (+ 짝 통계)
+  선택지: CCW처럼 Stage 4 연장(lr 2.5e-5, CCW에서 +43% 검증) 시 ~110-130K
+  기대. (정책 폴더 정리와 함께 사용자 승인 대기)
+
+[완료] Stage 4 v2 — 연장 정착 (2026-09-07, 사용자 승인 '둘 다 연장')
+  설정: training/configs/ppo_plane_rot_cw_v2_continue_stage4.yaml
+  run: 04_cw_v2_stage4 (이동 전 runs/.../20260906-232215)
+  (28.4M 추가 -> 누적 113,655,808, CCW Stage 5와 병렬)
+  최고 평가: 105,554 @ 97,841,856 (len 4,757) — Stage 3 대비 +20%, 100K 돌파
+  마지막 10회 평균 39,660 / ep_len 1,723. aligned 0.577, anchor 0.128m.
+  CW 계보 최종: 14.5K -> 72.3K -> 88.3K -> 105.6K.
+  현재 대표: 04_cw_v2_stage4/evaluation/best_model.zip (+ 짝 통계)
+
+[완료] Stage 5 v2 — 최종 연장 (2026-09-07, 사용자 결정)
+  목적: CCW(5-stage)와 스테이지 수를 맞추고 방위 학습을 마무리.
+  설정: training/configs/ppo_plane_rot_cw_v2_continue_stage5.yaml
+  run 디렉터리: runs/ppo_plane_rot_cw_v2_continue_stage5/
+  Stage 4 final에서 resume (누적 113,655,808 -> 142,069,760)
+  lr 2.5e-5 유지 (Stage 4 말기 KL 7.3e-4 비포화; CCW Stage 5 전례)
+  참고: 실패 원인 진단(2026-09-07) — 실패 100%가 앵커 완만 표류(경계
+  +5~12cm 초과, roll 전도 0건). norm_reward=False가 critic EV 병목.
+  개선안 3종(norm_reward YAML화, unhealthy_max_steps 60, dead_zone 0)은
+  v3 재설계 후보로 기록만 유지 — 이번 stage에는 미적용(방위 학습 종결 결정).
+
+[Stage 5 결과] run: 05_cw_v2_stage5 (이동 전 runs/.../20260907-100818)
+  (28.4M 추가 -> 누적 142,069,760)
+  최고 평가: 138,349 @ 121,455,808 (len 5,582) — Stage 4 대비 +31%
+  anchor 0.0994m(역대 최고 정밀), aligned 0.592, 마지막 10회 평균 36,023.
+
+=== CW v2 최종 계보 요약 (5-stage, 142.1M) ===
+  14.5K -> 72.3K -> 88.3K -> 105.6K -> 138.3K (CCW 148.3K 대비 -7%)
+  현재 대표: runs/ppo_plane_rot_cw_v2_continue_stage5/
+    20260907-100818-357699/evaluation/best_model.zip (+ 짝 통계)
+  방위 학습(8방위 이동 + CW/CCW 회전) 전체 종결 (2026-09-07).
+  2026-09-07 사용자 지시로 번호 디렉터리 정리 완료 (01~05).

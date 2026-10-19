@@ -1,0 +1,76 @@
+action_normalization:
+  enabled: true
+algorithm:
+  device: auto
+  kwargs:
+    batch_size: 512
+    gamma: 0.95
+    learning_rate:
+      final: 0.0
+      initial: 0.0001
+      schedule: linear
+    n_epochs: 10
+    n_steps: 512
+    target_kl: 0.04
+  name: PPO
+  policy: MlpPolicy
+  policy_kwargs:
+    activation_fn: tanh
+    net_arch:
+    - 512
+    - 512
+    - 512
+    - 512
+    - 512
+checkpointing:
+  enabled: true
+  save_freq: 250000
+environment:
+  id: horcrux_env/plane-direct-torque-scalable-v0
+  kwargs:
+    n_joints: 10
+    joy_input_random: false
+    joy_input:
+    - 1.0
+    - 0.0
+    - 0.0
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+    torque_min: -2.7
+    torque_max: 2.7
+    model_variant: motor
+evaluation:
+  deterministic: true
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+experiment:
+  name: scaling_dt_bsmotor_n10
+  output_dir: runs/corl2026_scaling/dt_bsmotor_n10
+  seed: 44
+normalization:
+  clip_obs: 10.0
+  enabled: true
+  epsilon: 1.0e-08
+sampling:
+  num_envs: 8
+  start_method: spawn
+  vec_env: subproc
+schema_version: 2
+training:
+  total_timesteps: 7864320
+video:
+  deterministic: true
+  enabled: true
+  record_every_iterations: 100
+  start_iteration: 10
+  video_length: 300
