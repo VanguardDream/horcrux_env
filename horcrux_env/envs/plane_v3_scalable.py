@@ -28,12 +28,49 @@ class SingleEvalTerminationMixin:
             self._unhealth_eval_step = self._n_step
             y, p, r = self._cur_euler_ypr
             t_min_r, t_max_r = self._terminating_roll_range
-            if t_min_r <= r <= t_max_r:
+            healthy = t_min_r <= r <= t_max_r
+            if healthy:
                 self._unhealth_steps = 0
             else:
                 self._unhealth_steps += 1
-            self._is_terminated_cached = self._unhealth_steps >= self._unhealthy_max_steps
+            terminated = self._unhealth_steps >= self._unhealthy_max_steps
+            # 모터 한계 속도 조건 (jvel_limit 설정 시): 임의 관절이 한계를
+            # 넘으면 유예 없이 즉시 종료 — 실기체가 낼 수 없는 고속 관절
+            # 해(주로 DT의 회피 경로)를 학습 단계에서 차단 (사용자 지정,
+            # 2026-08-11: unhealthy 유예 카운터가 아닌 즉시 terminate).
+            lim = getattr(self, "_jvel_limit", None)
+            if not terminated and lim is not None:
+                n = self.n_joints
+                jvel = self.data.sensordata[n:2 * n]
+                terminated = bool(np.max(np.abs(jvel)) > lim)
+            self._is_terminated_cached = terminated
         return self._is_terminated_cached
+
+
+def link_alignment_cost(env) -> float:
+    """전 링크의 개별 방향 정렬 비용: mean_i(1 - cos(링크 i x축 vs 명령 방향)).
+
+    heading 패널티(전 링크 chordal 평균 yaw)는 U자 자세에서 좌우 yaw가
+    상쇄되어 우회 가능하다(2026-08-12 DT 관찰). 이 항은 링크별로 계산하므로
+    U자·접힘 자세를 직접 벌하고, serpenoid 파동(±30~45°)은 저비용으로
+    허용한다. joy 명령이 없으면(크기<1e-6) 0.
+    """
+    dirv = np.asarray(env._joy_input[:2], dtype=float)
+    dn = np.linalg.norm(dirv)
+    if dn < 1e-6:
+        return 0.0
+    dirv = dirv / dn
+    total = 0.0
+    cnt = 0
+    for name in env._robot_body_names:
+        xm = env.data.body(name).xmat  # row-major 3x3
+        ax = np.array([xm[0], xm[3]])  # body x축의 world xy 성분
+        an = np.linalg.norm(ax)
+        if an < 1e-8:
+            continue
+        total += 1.0 - float(np.dot(ax, dirv) / an)
+        cnt += 1
+    return total / cnt if cnt else 0.0
 
 
 class PlaneJoyDirWorldScalable(SingleEvalTerminationMixin, PlaneJoyDirWorld):
@@ -61,20 +98,36 @@ class PlaneJoyDirWorldScalable(SingleEvalTerminationMixin, PlaneJoyDirWorld):
     성립한다 (unhealthy 상태에 진입하지 않는 궤적에서는 2번도 완전 동일).
     """
 
-    def __init__(self, n_joints: int = 14, model_path: Optional[str] = None, **kwargs):
+    def __init__(self, n_joints: int = 14, model_path: Optional[str] = None,
+                 model_variant: str = "", legacy_termination: bool = False,
+                 jvel_limit: Optional[float] = None,
+                 link_align_cost_weight: float = 0.0, **kwargs):
+        # link_align_cost_weight: 링크별 방향 정렬 비용 가중치 (0=비활성)
+        self._link_align_cost_weight = float(link_align_cost_weight)
+        # jvel_limit: 관절 속도 unhealthy 한계 (rad/s), None=비활성.
+        self._jvel_limit = jvel_limit
+        # legacy_termination: 13e0329 리비전(기존 forward 계보)의 종료 시맨틱스 재현 —
+        # 당시 step()은 Gym terminated 슬롯에 항상 False를 반환해 뒤집힘 종료가
+        # truncation(가치 부트스트랩)으로 처리됐다. 진단/재현 전용 옵션.
+        self._legacy_termination = bool(legacy_termination)
         self.n_joints = int(n_joints)
         n = self.n_joints
 
         resolved_path = model_path
         if resolved_path is None:
+            suffix = f"_{model_variant}" if model_variant else ""
             resolved_path = str(
-                resources.files("horcrux_env.resources_rebuttal") / f"horcrux_plane_n{n:02d}.xml"
+                resources.files("horcrux_env.resources_rebuttal") / f"horcrux_plane_n{n:02d}{suffix}.xml"
             )
 
         super().__init__(model_path=resolved_path, **kwargs)
 
         # EzPickle 인자를 서브클래스 시그니처로 재기록 (복원 시 이 클래스로 재생성)
-        utils.EzPickle.__init__(self, n_joints=n_joints, model_path=model_path, **kwargs)
+        utils.EzPickle.__init__(self, n_joints=n_joints, model_path=model_path,
+                                model_variant=model_variant,
+                                legacy_termination=legacy_termination,
+                                jvel_limit=jvel_limit,
+                                link_align_cost_weight=link_align_cost_weight, **kwargs)
 
         # ---- 부모가 14 기준으로 설정한 항목들을 n 기반으로 재정의 ----
         self._robot_body_names = [f"link{i}" for i in range(1, n + 2)]
@@ -144,6 +197,12 @@ class PlaneJoyDirWorldScalable(SingleEvalTerminationMixin, PlaneJoyDirWorld):
             "head_ang_vel": observation[self._sl_gyro].copy(),
             "head_lin_acc": observation[self._sl_acc].copy(),
         })
+        if self._link_align_cost_weight > 0.0:
+            c = self._link_align_cost_weight * link_alignment_cost(self)
+            reward -= c
+            info["cost_link_align"] = -c
+        if self._legacy_termination and terminated:
+            terminated, truncated = False, True
         return observation, reward, terminated, truncated, info
 
     def reset_model(self):

@@ -6,6 +6,16 @@ register(
 )
 
 register(
+    id="horcrux_env/plane-unified-v0",
+    entry_point="horcrux_env.envs:PlaneUnifiedWorld",
+)
+
+register(
+    id="horcrux_env/plane-rotation-v0",
+    entry_point="horcrux_env.envs:PlaneRotationWorld",
+)
+
+register(
     id="horcrux_env/plane-direct-torque-v0",
     entry_point="horcrux_env.envs:PlaneDirectTorqueWorld",
 )
@@ -19,4 +29,9 @@ register(
 register(
     id="horcrux_env/plane-direct-torque-scalable-v0",
     entry_point="horcrux_env.envs.plane_direct_torque_scalable:PlaneDirectTorqueWorldScalable",
+)
+
+register(
+    id="horcrux_env/plane-moving-init-v0",
+    entry_point="horcrux_env.envs:PlaneMovingInitWorld",
 )

@@ -9,7 +9,7 @@ from gymnasium import utils
 
 from horcrux_env.envs.gait_v3 import GaitV3
 from horcrux_env.envs.plane_direct_torque import PlaneDirectTorqueWorld
-from horcrux_env.envs.plane_v3_scalable import SingleEvalTerminationMixin
+from horcrux_env.envs.plane_v3_scalable import SingleEvalTerminationMixin, link_alignment_cost
 
 
 class PlaneDirectTorqueWorldScalable(SingleEvalTerminationMixin, PlaneDirectTorqueWorld):
@@ -34,17 +34,23 @@ class PlaneDirectTorqueWorldScalable(SingleEvalTerminationMixin, PlaneDirectTorq
         self,
         n_joints: int = 14,
         model_path: Optional[str] = None,
+        model_variant: str = "",
         torque_min: float = -2.7,
         torque_max: float = 2.7,
+        jvel_limit: Optional[float] = None,
+        link_align_cost_weight: float = 0.0,
         **kwargs: Any,
     ) -> None:
+        self._jvel_limit = jvel_limit
+        self._link_align_cost_weight = float(link_align_cost_weight)
         self.n_joints = int(n_joints)
         n = self.n_joints
 
         resolved_path = model_path
         if resolved_path is None:
+            suffix = f"_{model_variant}" if model_variant else ""
             resolved_path = str(
-                resources.files("horcrux_env.resources_rebuttal") / f"horcrux_plane_n{n:02d}.xml"
+                resources.files("horcrux_env.resources_rebuttal") / f"horcrux_plane_n{n:02d}{suffix}.xml"
             )
 
         super().__init__(
@@ -59,8 +65,11 @@ class PlaneDirectTorqueWorldScalable(SingleEvalTerminationMixin, PlaneDirectTorq
             self,
             n_joints=n_joints,
             model_path=model_path,
+            model_variant=model_variant,
             torque_min=torque_min,
             torque_max=torque_max,
+            jvel_limit=jvel_limit,
+            link_align_cost_weight=link_align_cost_weight,
             **kwargs,
         )
 
@@ -132,6 +141,10 @@ class PlaneDirectTorqueWorldScalable(SingleEvalTerminationMixin, PlaneDirectTorq
                 "joy_input": observation[5 * n + 10:5 * n + 13].copy(),
             }
         )
+        if self._link_align_cost_weight > 0.0:
+            c = self._link_align_cost_weight * link_alignment_cost(self)
+            reward -= c
+            info["cost_link_align"] = -c
         return observation, reward, terminated, truncated, info
 
     def reset_model(self):
