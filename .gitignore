@@ -192,3 +192,7 @@ events.out.tfevents.*
 /AGENTS.md
 /.agents/
 /.codex/
+
+# 실행 중에만 의미 있는 파일과 큰 데이터 (2026-10-19 하네스 정비)
+*.pid
+/policies/**/*.npz
