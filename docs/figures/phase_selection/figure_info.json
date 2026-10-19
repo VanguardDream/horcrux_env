@@ -1,0 +1,34 @@
+{
+ "raster": {
+  "diag_fr": {
+   "states": 90,
+   "phases": 11,
+   "survive_frac": 0.6565656565656566,
+   "no_phase_works": 0.011111111111111112,
+   "runs": 1.6329113924050633,
+   "runs_shuffled": 2.269746835443038,
+   "best_fixed_col_fail": 0.23333333333333334,
+   "worst_fixed_col_fail": 0.45555555555555555
+  },
+  "forward": {
+   "states": 90,
+   "phases": 9,
+   "survive_frac": 0.7703703703703704,
+   "no_phase_works": 0.011111111111111112,
+   "runs": 1.3384615384615384,
+   "runs_shuffled": 1.8244615384615386,
+   "best_fixed_col_fail": 0.16666666666666666,
+   "worst_fixed_col_fail": 0.32222222222222224
+  },
+  "diag_bl": {
+   "states": 90,
+   "phases": 9,
+   "survive_frac": 0.6037037037037036,
+   "no_phase_works": 0.022222222222222223,
+   "runs": 1.3604651162790697,
+   "runs_shuffled": 2.0415116279069765,
+   "best_fixed_col_fail": 0.24444444444444444,
+   "worst_fixed_col_fail": 0.5222222222222223
+  }
+ }
+}
