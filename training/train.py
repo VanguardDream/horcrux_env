@@ -269,7 +269,7 @@ def wrap_with_observation_normalization(
         env,
         training=training,
         norm_obs=True,
-        norm_reward=False,
+        norm_reward=bool(normalization.get("norm_reward", False)),
         clip_obs=float(normalization.get("clip_obs", 10.0)),
         epsilon=float(normalization.get("epsilon", 1e-8)),
     )
@@ -291,7 +291,11 @@ def restore_or_create_observation_normalization(
     normalized_env = VecNormalize.load(statistics_path, env)
     normalized_env.training = True
     normalized_env.norm_obs = True
-    normalized_env.norm_reward = False
+    # resume 시에도 YAML 값을 따른다 (기본 False). 저장된 통계와 다른 값을
+    # 명시하면 가치 스케일 의미가 바뀌므로 새 계보에서만 바꿀 것.
+    normalized_env.norm_reward = bool(
+        config["normalization"].get("norm_reward", False)
+    )
     return normalized_env
 
 
@@ -321,6 +325,47 @@ def git_revision() -> str | None:
         return None
 
 
+# 코드 버전 기록 (2026-10-19): 커밋 해시만으로는 커밋되지 않은 수정이 기록되지 않아,
+# 8월 이후 모든 run이 같은 해시를 가리키는 문제가 있었다. 수정 여부와 변경분을 함께 남긴다.
+# 패치 = 코드 경로의 HEAD 대비 변경 + 미추적 소스 파일(아래 폴더·확장자)의 전체 내용.
+# policies/·docs/·runs/의 기록 파일은 코드 재현과 무관해 넣지 않는다.
+# 되살리기: git checkout <git_revision> && git apply <run_dir>/git_diff.patch
+_PATCH_SOURCE_DIRS = ("horcrux_env", "training", "scripts", "pyproject.toml")
+_PATCH_SOURCE_EXTS = (".py", ".yaml", ".yml", ".xml", ".sh", ".json", ".txt", ".md")
+
+
+def _git(*args: str, ok_codes: tuple[int, ...] = (0,)) -> str | None:
+    try:
+        result = subprocess.run(["git", *args], cwd=PROJECT_ROOT, capture_output=True, text=True)
+    except FileNotFoundError:
+        return None
+    return result.stdout if result.returncode in ok_codes else None
+
+
+def git_state(run_dir: Path) -> dict[str, Any]:
+    """커밋 해시, 수정 여부, 변경분 해시를 돌려주고 변경분을 run_dir/git_diff.patch로 저장한다."""
+    import hashlib
+
+    state: dict[str, Any] = {"git_revision": git_revision()}
+    if state["git_revision"] is None:
+        return state
+    tracked = _git("diff", "HEAD", "--binary", "--", *_PATCH_SOURCE_DIRS) or ""
+    untracked_list = _git("ls-files", "--others", "--exclude-standard", "--", *_PATCH_SOURCE_DIRS) or ""
+    untracked = [f for f in untracked_list.splitlines() if f.endswith(_PATCH_SOURCE_EXTS)]
+    parts = [tracked]
+    for f in untracked:
+        # --no-index 비교는 차이가 있으면 종료 코드 1을 돌려준다(정상).
+        parts.append(_git("diff", "--no-index", "--binary", "--", "/dev/null", f, ok_codes=(0, 1)) or "")
+    patch = "".join(parts)
+    state["git_dirty"] = bool(patch.strip())
+    state["git_untracked_source_files"] = len(untracked)
+    if state["git_dirty"]:
+        (run_dir / "git_diff.patch").write_text(patch, encoding="utf-8")
+        state["git_diff_sha256"] = hashlib.sha256(patch.encode("utf-8")).hexdigest()
+        state["git_diff_file"] = "git_diff.patch"
+    return state
+
+
 def package_version(name: str) -> str | None:
     try:
         return importlib.metadata.version(name)
@@ -342,7 +387,7 @@ def save_run_metadata(config: dict[str, Any], run_dir: Path) -> None:
 
     metadata = {
         "started_at": datetime.now(timezone.utc).isoformat(),
-        "git_revision": git_revision(),
+        **git_state(run_dir),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "packages": {
@@ -485,6 +530,8 @@ def main() -> None:
                     seed=seed + num_envs + 1,
                     deterministic=bool(video.get("deterministic", True)),
                     normalize_action=action_normalization_enabled(config),
+                    track_com=bool(video.get("track_com", True)),
+                    cam_fovy=video.get("cam_fovy", 80.0),
                 )
             )
 

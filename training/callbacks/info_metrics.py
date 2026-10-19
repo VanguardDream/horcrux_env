@@ -41,6 +41,15 @@ class InfoMetricsCallback(BaseCallback):
         "x_displacement",
         "y_displacement",
         "distance_from_origin",
+        # plane-rotation-v0 전용 (다른 환경은 키가 없어 자동 생략)
+        "anchor_distance",
+        "aligned_yaw_vel",
+        "cost_anchor",
+        "cost_overspeed",
+        "cost_trans_vel",
+        "reward_anchor_proximity",  # plane-unified-v0 앵커 근접 보상 (2026-09-09)
+        "cost_tilt",                # plane-moving-init-v0 iteration 3 기울기 벌점 (2026-09-11)
+        "cost_push_tilt",           # plane-moving-init-v0 iteration 3 기운 채로 세게 밀기 벌점
     )
 
     # info key -> (tag prefix, component labels or None for index numbering)
@@ -58,12 +67,74 @@ class InfoMetricsCallback(BaseCallback):
         "reward_func_orientation": ("rew_ori", ("yaw", "pitch", "roll")),
     }
 
+    # 전환 후 관찰 창 (스텝): 보상 평균 창 / 실패(종료) 판정 창
+    SWITCH_REWARD_WINDOW = 50
+    SWITCH_FAIL_WINDOW = 100
+
     def __init__(self, per_component: bool = True, verbose: int = 0):
         super().__init__(verbose)
         self._per_component = per_component
+        self._switch_trackers: list[dict | None] = []
+
+    def _track_switch(self, i: int, info: dict, reward: float, done: bool) -> None:
+        """전환 커리큘럼(plane-unified-v0 switch_enabled) 통계.
+
+        env_switch/post50_reward      전환 직후 50스텝 평균 보상 (회복 속도)
+        env_switch/fail_within100     전환 후 100스텝 내 종료(낙상/앵커 이탈) 비율
+        env_switch/*_to_XX            도착 명령별 분해
+        env_switch/per_episode        에피소드당 전환 횟수
+        """
+        if i >= len(self._switch_trackers):
+            self._switch_trackers.extend([None] * (i + 1 - len(self._switch_trackers)))
+        tr = self._switch_trackers[i]
+        if tr is not None:
+            tr["t"] += 1
+            if tr["t"] <= self.SWITCH_REWARD_WINDOW:
+                tr["rsum"] += reward
+            failed = done and not info.get("TimeLimit.truncated", False)
+            finish = failed or done or tr["t"] >= self.SWITCH_FAIL_WINDOW
+            if finish:
+                n_r = min(tr["t"], self.SWITCH_REWARD_WINDOW)
+                to = tr["to"]
+                self.logger.record_mean("env_switch/post50_reward", tr["rsum"] / max(n_r, 1))
+                self.logger.record_mean("env_switch/fail_within100", float(failed))
+                self.logger.record_mean(f"env_switch/post50_reward_to_{to:02d}", tr["rsum"] / max(n_r, 1))
+                self.logger.record_mean(f"env_switch/fail_to_{to:02d}", float(failed))
+                self._switch_trackers[i] = None
+        if info.get("switched", False):
+            self._switch_trackers[i] = dict(t=0, rsum=0.0, to=int(info["switch_to"]))
+        if done:
+            self._switch_trackers[i] = None
 
     def _on_step(self) -> bool:
-        for info in self.locals.get("infos", []):
+        infos = self.locals.get("infos", [])
+        rewards = self.locals.get("rewards")
+        dones = self.locals.get("dones")
+        for i, info in enumerate(infos):
+            if "switch_count" in info and rewards is not None and dones is not None:
+                self._track_switch(i, info, float(rewards[i]), bool(dones[i]))
+            # 인계 시작 환경(plane-moving-init-v0): 시작 유형별 에피소드 통계
+            episode = info.get("episode")
+            if episode is not None and "moving_init" in info:
+                kind = "moving" if info["moving_init"] else "rest"
+                self.logger.record_mean(f"env_init/return_{kind}", float(episode["r"]))
+                self.logger.record_mean(f"env_init/eplen_{kind}", float(episode["l"]))
+                if info["moving_init"]:
+                    failed = float(episode["l"] <= 100 and not info.get("TimeLimit.truncated", False))
+                    self.logger.record_mean("env_init/fail100_moving", failed)
+                    src = int(info.get("source_cmd", -1))
+                    if src >= 0:
+                        self.logger.record_mean(f"env_init/fail100_from_{src:02d}", failed)
+                self.logger.record_mean("env_init/moving_frac", float(info["moving_init"]))
+            # 통합 환경(plane-unified-v0): 명령별 에피소드 리턴/길이
+            command_id = info.get("command_id")
+            if episode is not None and command_id is not None:
+                cid = int(command_id)
+                self.logger.record_mean(f"env_cmd/return_{cid:02d}", float(episode["r"]))
+                self.logger.record_mean(f"env_cmd/eplen_{cid:02d}", float(episode["l"]))
+                if "switch_count" in info:
+                    self.logger.record_mean("env_switch/per_episode", float(info["switch_count"]))
+
             for name in self.SCALAR_METRICS:
                 value = info.get(name)
                 if value is not None:

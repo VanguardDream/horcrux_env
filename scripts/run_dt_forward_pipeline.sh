@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Train the GD control group (direct torque) forward policy as one detached
 # 5-stage pipeline, mirroring the gait-decomposition forward lineage in
-# policies/path_tracking/forward (stages 01..05) for a fair ablation:
+# policies/path_tracking/old/forward_delta23 (stages 01..05) for a fair ablation:
 #
 #   stage 1  from scratch          lr 3e-4, 5 epochs,            +7,864,320
 #   stage 2  resume stage1 BEST    lr 1e-4, 3 epochs,            +100,000

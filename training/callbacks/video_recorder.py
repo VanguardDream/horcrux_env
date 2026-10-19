@@ -26,6 +26,8 @@ class VideoRecorderCallback(BaseCallback):
         deterministic: bool = True,
         normalize_action: bool = False,
         verbose: int = 1,
+        track_com: bool = True,
+        cam_fovy: float | None = 80.0,
     ) -> None:
         super().__init__(verbose=verbose)
         if start_iteration < 1:
@@ -44,8 +46,35 @@ class VideoRecorderCallback(BaseCallback):
         self.seed = seed
         self.deterministic = deterministic
         self.normalize_action = normalize_action
+        # 카메라: 기본 'ceiling' 카메라는 고정 위치라 로봇이 30초 안에 프레임을 벗어난다
+        # (2026-09-10 지적). 데모와 같이 매 스텝 CoM을 추적하고 fovy를 넓힌다.
+        self.track_com = track_com
+        self.cam_fovy = cam_fovy
         self.completed_iterations = 0
         self.recorded_iterations: set[int] = set()
+
+    def _setup_camera(self, base_env):
+        """CoM 추적 카메라 준비. 지원하지 않는 env면 None (고정 카메라 유지)."""
+        try:
+            u = base_env.unwrapped
+            cam_id = u.model.camera("ceiling").id
+            if self.cam_fovy is not None:
+                u.model.cam_fovy[cam_id] = float(self.cam_fovy)
+            cam_z = float(u.model.cam_pos[cam_id][2])
+            u.get_robot_com()
+            return u, cam_id, cam_z
+        except Exception:
+            return None
+
+    @staticmethod
+    def _track(cam):
+        if cam is None:
+            return
+        u, cam_id, cam_z = cam
+        com = u.get_robot_com()
+        u.model.cam_pos[cam_id][0] = float(com[0])
+        u.model.cam_pos[cam_id][1] = float(com[1])
+        u.model.cam_pos[cam_id][2] = cam_z
 
     def _on_step(self) -> bool:
         return True
@@ -107,9 +136,11 @@ class VideoRecorderCallback(BaseCallback):
                 disable_logger=True,
             )
 
+        cam = self._setup_camera(base_env) if self.track_com else None
         try:
             observation, _ = env.reset(seed=self.seed + self.completed_iterations)
             for _ in range(self.video_length):
+                self._track(cam)
                 policy_observation = observation
                 vec_normalize = self.model.get_vec_normalize_env()
                 if vec_normalize is not None:
