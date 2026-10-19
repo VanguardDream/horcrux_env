@@ -1,0 +1,94 @@
+schema_version: 2
+
+# 인계 시작(moving-state init) 이어 학습 — iteration 2 파일럿 (diag_bl).
+#
+# 근거 (2026-09-10 iteration 1 진단): 혼합 분포로 정상 주행은 유지됐으나 진입 후 낙상은 줄지 않음.
+# 원인 = 선형 명령 낙상 페널티(unhealthy_cost_weight 2)가 γ 0.95에서 사실상 무료라 "전환 직후 저진폭으로
+# 버티기"(실험상 낙상 회피 가능)를 배울 기울기가 없음. 인계 시작 env 전용으로 종료 시 1회 페널티 200을
+# 부과(기존 plane-v0 계보 보상은 불변). KL 포화(0.035~0.045) 처방으로 lr 1e-4 -> 5e-5. 나머지(은행,
+# 인계 50% / align 80% / 절단 1000, 28.4M)는 iteration 1과 동일해 페널티 효과를 분리해 본다.
+# iteration 1 final에서 재개(정상 주행 유지 확인됨).
+experiment:
+  name: ppo_plane_diag_bl_moving_init_iter2
+  seed: 42
+  output_dir: runs/ppo_plane_diag_bl_moving_init_iter2
+
+environment:
+  id: horcrux_env/plane-moving-init-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [-0.7071, 0.7071, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 203, -1]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    unhealthy_cost_weight: 200.0   # iteration 2: 낙상 종료 시 1회 페널티 (기본 2)
+    use_imu_window: false
+    use_vels_window: false
+
+    # 인계 시작
+    bank_path: runs/moving_state_bank/bank_iter1.npz
+    moving_init_prob: 0.5
+    align_prob: 0.8
+    moving_episode_horizon: 1000
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: runs/ppo_plane_diag_bl_moving_init_iter1/20260910-133857-048290_ppo_plane_diag_bl_moving_init_iter1/final_model.zip
+  vecnormalize_path: runs/ppo_plane_diag_bl_moving_init_iter1/20260910-133857-048290_ppo_plane_diag_bl_moving_init_iter1/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.00005
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 10
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

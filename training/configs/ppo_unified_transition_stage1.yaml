@@ -1,0 +1,107 @@
+schema_version: 2
+
+# Stage 1: gait 전환 학습 — 증류된 통합 정책(policies/unified/00_distilled)에서
+# 이어서, 에피소드 내 무작위 명령 전환(90 순서쌍 균등, 시점·초기 위상 무작위)을
+# 위상 정렬(align) 전환으로 겪으며 PPO 미세조정한다.
+#
+# 근거 (2026-09-09 합의):
+#   - 출발점: 10명 전문가를 BC로 증류한 단일 명령 조건부 정책 (Phase B).
+#     RL로 9개 명령을 새로 익히는 불확실성을 제거해 "전환"만 학습하게 한다.
+#   - 전환 메커니즘 align: 물리적으로 가장 연속이며, 정책이 정렬 시작을 직접
+#     학습하면 k=0 전문가의 정렬 취약점이 사라진다. 배포도 단일 메커니즘.
+#   - 보상 계수는 방위 계보와 동일(frozen). 회전 명령은 통합 env의 v2 안정
+#     우선 보상(기본값). gamma 0.99: 회전 계보와 동일하고 전환 후 낙상 같은
+#     지연 결과(≈100스텝)를 critic이 보게 한다. 학생의 critic은 이 gamma의
+#     MC return에 사전 회귀되어 있다.
+#   - 하이퍼파라미터: 검증된 Stage 1 값 (lr 1e-4, n_epochs 2, target_kl 0.04).
+experiment:
+  name: ppo_unified_transition_stage1
+  seed: 42
+  output_dir: runs/ppo_unified_transition_stage1
+
+environment:
+  id: horcrux_env/plane-unified-v0
+  kwargs:
+    # 방위 계보 공통 보상 계수 (frozen)
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+    # 회전 앵커: 종료 대신 근접 보상 (2026-09-09 설계 변경, 사용자 제안)
+    # 이동 중 회전으로 전환하면 관성 미끄러짐(평균 0.37m)이 앵커 0.2m 종료 규칙에
+    # 걸려 회전 진입 전환의 54%가 정책 실력과 무관하게 종료됐다. 종료를 없애고
+    # 근접 보상 10·max(0, 1−d/0.2)로 대체 — 미끄러짐이 치명이 아닌, 진폭 조절로
+    # 줄일 수 있는 손실이 된다. 기존 포화 앵커 비용 50·min(d, 2.0)은 유지.
+    # 스텝당 수지(목표 속도 회전 ≈ 25): d=0 → +35, 0.2m → +15, 0.4m → +5, ≥0.55m 음수.
+    anchor_terminate: false
+    anchor_proximity_reward_weight: 10.0
+    anchor_proximity_radius: 0.2
+
+    # 전환 커리큘럼
+    switch_enabled: true
+    switch_count_range: [1, 4]
+    switch_min_dwell: 100        # 5초 — 전환 전 gait를 확립할 최소 시간
+    switch_mode: align
+    random_init_phase: true
+    episode_horizon: 1000        # 50초 (부모의 6000스텝 truncation을 덮어씀; gym.make의 max_episode_steps와 이름 충돌 회피)
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/unified/00_distilled/model.zip
+  vecnormalize_path: policies/unified/00_distilled/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.99
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 40000000
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 10   # 전환이 무작위라 5회는 분산이 커 best_model 선택이 요동 → 10회 (2026-09-09 검토)
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

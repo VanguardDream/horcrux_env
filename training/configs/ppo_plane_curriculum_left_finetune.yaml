@@ -36,7 +36,7 @@ action_normalization:
   enabled: true
 
 resume:
-  model_path: policies/path_tracking/forward/05_forward_x_long/evaluation/best_model.zip
+  model_path: policies/path_tracking/old/forward_delta23/05_forward_x_long/evaluation/best_model.zip
   vecnormalize_path: policies/path_tracking/left/00_aborted_transfer_diagnostic/seed_from_forward_best_vecnormalize.pkl
 
 algorithm:

@@ -1,0 +1,61 @@
+schema_version: 2
+
+experiment:
+  name: ppo_plane_unified_smoke
+  seed: 42
+  output_dir: runs/smoke_unified
+
+environment:
+  id: horcrux_env/plane-unified-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+
+sampling:
+  num_envs: 2
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0003
+    gamma: 0.99
+    n_steps: 128
+    batch_size: 64
+    n_epochs: 1
+  policy_kwargs:
+    net_arch: [64, 64]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 256
+
+evaluation:
+  enabled: false
+  eval_freq: 0
+  n_eval_episodes: 1
+  deterministic: true
+
+checkpointing:
+  enabled: false
+  save_freq: 0
+
+video:
+  enabled: false
+  start_iteration: 1
+  record_every_iterations: null
+  video_length: 40
+  deterministic: true

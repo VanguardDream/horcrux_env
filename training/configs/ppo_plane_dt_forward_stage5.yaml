@@ -2,7 +2,7 @@ schema_version: 2
 
 # GD control group (direct torque), forward (+X), stage 5 of 5.
 #
-# Mirrors policies/path_tracking/forward/05_forward_x_long
+# Mirrors policies/path_tracking/old/forward_delta23/05_forward_x_long
 # (config: ppo_plane_curriculum_x_long.yaml): the 30.72M-step long run
 # (7,500 PPO iterations) at lr 5e-5 / 2 epochs / target_kl 0.04.
 # Resumes from stage 4's FINAL model. Resume paths are supplied by

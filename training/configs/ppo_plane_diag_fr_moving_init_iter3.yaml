@@ -1,0 +1,101 @@
+schema_version: 2
+
+# 인계 시작(moving-state init) 이어 학습 — iteration 3 파일럿 (diag_fr).
+#
+# 근거 (2026-09-11 합의): iteration 1·2는 정지 주행은 유지했으나 진입 실패율이 잡음 범위에서 변하지 않았다
+# (기준 0.311/0.328/0.167 → iter2 0.361/0.289/0.178). 낙상 벌점 200을 실제 적용해도 같았다.
+# 진단: 지금 보상은 넘어진 뒤에야 벌점이 한 번 오고, 넘어지기 전 ~15스텝은 신호가 없으며 γ 0.95라 늦은 벌점이
+# 약하다. 처방: 인계 시작 에피소드에만 매 스텝 신호를 주는 두 항을 추가한다(정지 시작 에피소드는 기존 보상 그대로).
+#   cost_tilt      기울기 벌점 — |roll| 15°까지 0, 45°(불건강 기준)에서 -20/스텝, 비례, 75° 이상 -40 캡
+#   cost_push_tilt 기운 채로 세게 밀기 벌점 — -20 × (기울기 비율 0~1) × (평균 진폭/최대 진폭)
+#   두 항 모두 정책이 관측하는 IMU 자세로 정의돼 시간 조건이 없다("전환 직후 잠깐 힘 빼기"를 상태 조건으로 유도).
+# 시작 모델은 원본(셋째 단계 최종): 두 번의 반복이 무효였고 흔들림 폭이 줄어 있어, 새 보상의 효과를 깨끗이 본다.
+# 나머지(은행, 인계 50% / align 80% / 절단 1000, 벌점 200 1회, γ 0.95, lr 1e-4 / ep 2 / KL 0.04, 28.4M)는 동일.
+experiment:
+  name: ppo_plane_diag_fr_moving_init_iter3
+  seed: 42
+  output_dir: runs/ppo_plane_diag_fr_moving_init_iter3
+
+environment:
+  id: horcrux_env/plane-moving-init-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [0.7071, -0.7071, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 203]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    unhealthy_cost_weight: 200.0   # 낙상 종료 시 1회 페널티 (iteration 2와 동일)
+    tilt_cost_weight: 20.0         # iteration 3: 기울기 벌점 (인계 에피소드 한정)
+    push_tilt_cost_weight: 20.0    # iteration 3: 기운 채로 세게 밀기 벌점 (인계 에피소드 한정)
+    tilt_deadzone_deg: 15.0
+    tilt_ref_deg: 45.0
+    use_imu_window: false
+    use_vels_window: false
+
+    # 인계 시작
+    bank_path: runs/moving_state_bank/bank_iter1.npz
+    moving_init_prob: 0.5
+    align_prob: 0.8
+    moving_episode_horizon: 1000
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/diag_forward_right/03_diag_fr_continue_stage3/final_model.zip
+  vecnormalize_path: policies/path_tracking/diag_forward_right/03_diag_fr_continue_stage3/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 10
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

@@ -1,0 +1,94 @@
+schema_version: 2
+
+# In-place CW rotation (mirror of the validated CCW v2 campaign), v2 "stability-first" design (user-approved 2026-09-05):
+#   - rotation reward saturates at rotation_target_rate 0.5 rad/s (no incentive
+#     to spin faster) + overspeed penalty beyond target+0.15
+#   - anchor radius 0.2 m added to the unhealthy condition set: leaving it for
+#     30 consecutive steps terminates the episode (failure)
+#   - unhealthy_cost 1000 (one-time terminal penalty, visible to the critic)
+#   - gamma 0.95 -> 0.99 (longer credit horizon so termination is seen)
+# Rationale: v1 collapsed into a fast-spin-and-fall regime; the myopic
+# spin-faster gradient dominated invisible termination costs. See
+# policies/rotation/ccw/TRAINING_HISTORY.txt and CLAUDE_CHANGES 2026-09-05.
+experiment:
+  name: ppo_plane_rot_cw_v2_from_scratch_long
+  seed: 42
+  output_dir: runs/ppo_plane_rot_cw_v2_from_scratch_long
+
+environment:
+  id: horcrux_env/plane-rotation-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [0.0, 0.0, -1.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 135]
+
+    rotation_reward_weight: 45.0
+    anchor_cost_weight: 50.0
+    anchor_dead_zone: 0.05
+    anchor_healthy_radius: 0.2
+    rotation_target_rate: 0.5
+    rotation_overspeed_tolerance: 0.15
+    rotation_overspeed_weight: 45.0
+    unhealthy_cost_weight: 1000.0
+    anchor_cost_cap: 2.0
+    trans_vel_cost_weight: 0.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+# Intentionally no resume section: initialize a new policy and optimizer.
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.99
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# 6,937 iterations * (512 steps * 8 environments) = 28,413,952.
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 100000
+  n_eval_episodes: 3
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 250000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 100
+  video_length: 300
+  deterministic: true

@@ -33,8 +33,8 @@ action_normalization:
   enabled: true
 
 resume:
-  model_path: policies/path_tracking/forward/03_lower_lr_epoch_long/final_model.zip
-  vecnormalize_path: policies/path_tracking/forward/03_lower_lr_epoch_long/vecnormalize.pkl
+  model_path: policies/path_tracking/old/forward_delta23/03_lower_lr_epoch_long/final_model.zip
+  vecnormalize_path: policies/path_tracking/old/forward_delta23/03_lower_lr_epoch_long/vecnormalize.pkl
 
 algorithm:
   name: PPO

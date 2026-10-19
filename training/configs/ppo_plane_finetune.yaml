@@ -30,8 +30,8 @@ action_normalization:
   enabled: true
 
 resume:
-  model_path: policies/path_tracking/forward/01_initial_sb3_baseline/evaluation/best_model.zip
-  vecnormalize_path: policies/path_tracking/forward/01_initial_sb3_baseline/evaluation/best_model_vecnormalize.pkl
+  model_path: policies/path_tracking/old/forward_delta23/01_initial_sb3_baseline/evaluation/best_model.zip
+  vecnormalize_path: policies/path_tracking/old/forward_delta23/01_initial_sb3_baseline/evaluation/best_model_vecnormalize.pkl
 
 algorithm:
   name: PPO

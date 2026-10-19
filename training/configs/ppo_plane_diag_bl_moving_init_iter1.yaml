@@ -1,0 +1,94 @@
+schema_version: 2
+
+# 인계 시작(moving-state init) 이어 학습 — iteration 1 파일럿 (diag_bl).
+#
+# 근거 (2026-09-10 합의): 전문가는 정지·k=0 시작만 학습해 전환 순간의 몸 상태(다른 gait의
+# 형상·관성·위상)가 학습 분포 밖이었다. 은행(bank_iter1.npz)에 저장된 "다른 정책이 움직이던
+# 상태"에서 이 전문가의 gait로 align 전환한 순간을 에피소드 시작으로 삼되(50%), 정상 주행
+# 퇴화를 막기 위해 기존 정지 시작(50%)을 섞는다. 전환 위상은 align 80% / 무작위 20%.
+# 인계 에피소드는 1000스텝 절단(전환 직후 신호 희석 방지), 정지 시작은 6000 유지.
+# 보상·종료·γ(0.95)·네트워크는 stage 3와 동일(frozen). 옵티마이저는 새 분포 대응을 위해
+# 검증된 Stage 1 값(lr 1e-4, n_epochs 2, target_kl 0.04). 학습량 28.4M(기존 stage 규모).
+experiment:
+  name: ppo_plane_diag_bl_moving_init_iter1
+  seed: 42
+  output_dir: runs/ppo_plane_diag_bl_moving_init_iter1
+
+environment:
+  id: horcrux_env/plane-moving-init-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [-0.7071, 0.7071, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 203, -1]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+    # 인계 시작
+    bank_path: runs/moving_state_bank/bank_iter1.npz
+    moving_init_prob: 0.5
+    align_prob: 0.8
+    moving_episode_horizon: 1000
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/diag_backward_left/03_diag_bl_continue_stage3/final_model.zip
+  vecnormalize_path: policies/path_tracking/diag_backward_left/03_diag_bl_continue_stage3/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 10
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

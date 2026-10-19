@@ -3,7 +3,7 @@ schema_version: 2
 # GD control group (direct torque), forward (+X), stage 1 of 5.
 #
 # Mirrors the gait-decomposition forward lineage stage
-# policies/path_tracking/forward/01_initial_sb3_baseline
+# policies/path_tracking/old/forward_delta23/01_initial_sb3_baseline
 # (config: ppo_plane.yaml) exactly, except the environment: the policy outputs
 # signed joint torques directly and observations omit the 14-dim gait motion
 # vector. Every PPO hyperparameter, seed, network, normalization, and timestep

@@ -1,0 +1,97 @@
+schema_version: 2
+
+# 인계 시작(moving-state init) 이어 학습 — iteration 4 파일럿 (forward).
+#
+# 근거 (2026-09-12 합의): iteration 1~3(벌점 200, 학습률, 촘촘한 기울기 벌점)은 모두 진입 실패를 줄이지 못했다.
+# 반면 시작 위상 규칙을 '가로 먼저'(짝수 관절 = 미는 방향의 부호 일치 우선, 동점이면 세로)로 바꾸면 학습 없이도
+# 진입 실패가 0.231 → 0.158(원본 전문가 8개 × 1,440 상태), iteration 3 모델에서도 0.29 → 0.18로 줄었다.
+# 해석: 지금까지는 정책이 구하기 어려운 출발 상태(부호 정렬 위상)에서 학습시켜 배울 것이 없었다.
+# 처방: 인계 시작의 정렬 규칙만 'lat'로 바꾸고(align_rule), 실제로 마주할 출발 상태에서 더 잘 버티도록 학습한다.
+# iteration 3의 벌점 항 2개는 뺀다(효과 없음 + 주행 리턴 2~4% 하락). 낙상 벌점 200(1회)은 유지.
+# 시작 모델은 원본(셋째 단계 최종). 나머지(은행, 인계 50% / align 80% / 무작위 20% / 절단 1000, γ 0.95,
+# lr 1e-4 / ep 2 / KL 0.04, 28.4M)는 iteration 1과 동일. 평가는 lat 규칙 기준(원본 0.261/0.161/0.144가 출발선).
+experiment:
+  name: ppo_plane_forward_moving_init_iter4
+  seed: 42
+  output_dir: runs/ppo_plane_forward_moving_init_iter4
+
+environment:
+  id: horcrux_env/plane-moving-init-v0
+  kwargs:
+    joy_input_random: false
+    joy_input: [1.0, 0.0, 0.0]
+    use_gait: true
+    gait_params: [30, 30, 40, 40, 0]
+
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    unhealthy_cost_weight: 200.0   # 낙상 종료 시 1회 페널티 (iteration 2·3과 동일)
+    use_imu_window: false
+    use_vels_window: false
+
+    # 인계 시작
+    bank_path: runs/moving_state_bank/bank_iter1.npz
+    moving_init_prob: 0.5
+    align_prob: 0.8
+    align_rule: lat                 # iteration 4: 시작 위상 규칙 '가로 먼저' (기본 sign)
+    moving_episode_horizon: 1000
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+resume:
+  model_path: policies/path_tracking/forward/03_forward_delta0_continue_stage3/final_model.zip
+  vecnormalize_path: policies/path_tracking/forward/03_forward_delta0_continue_stage3/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0001
+    gamma: 0.95
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 2
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+training:
+  total_timesteps: 28413952
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 10
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

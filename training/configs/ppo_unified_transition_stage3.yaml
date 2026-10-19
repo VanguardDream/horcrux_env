@@ -1,0 +1,99 @@
+schema_version: 2
+
+# Stage 3: gait 전환 학습 계속 (Stage 2 final 재개).
+#
+# 근거 (Stage 2 run 20260909-210657, 누적 80M): n_epochs 3에서도 말기 approx_kl 0.0028
+# (target 0.04의 1/14), clip_fraction 0.011 — 여전히 "KL 유휴". 평가 리턴은 완만히
+# 상승(최고 24,102 @62.8M, 최근 10회 평균 15,115 -> 16,965)했으나 롤아웃 리턴은
+# 14.8K -> 15.0K로 횡보, 전환 후 100스텝 실패율 0.097로 정체(diag_fr/diag_bl 도착
+# 0.33/0.35). 검증 레시피의 다음 레버(ep 3)가 소진됐으므로, 신뢰 영역 여유를 쓰는
+# 옵티마이저 수준 조정으로 learning_rate 1e-4 -> 2e-4 (target_kl 0.04 조기중단이
+# 안전장치). n_epochs 3, γ 0.99, 환경·보상·커리큘럼·네트워크는 불변(frozen).
+experiment:
+  name: ppo_unified_transition_stage3
+  seed: 44
+  output_dir: runs/ppo_unified_transition_stage3
+
+environment:
+  id: horcrux_env/plane-unified-v0
+  kwargs:
+    # 방위 계보 공통 보상 계수 (frozen)
+    forward_reward_weight: 60.0
+    efficiency_reward_weight: 3.0
+    healthy_reward: 2.0
+    rotation_norm_cost_weight: 10.0
+    proj_dist_cost_weight: 0.0
+    ctrl_cost_weight: 0.0
+
+    use_friction_chg: false
+    terminate_when_unhealthy: true
+    unhealthy_max_steps: 30
+    use_imu_window: false
+    use_vels_window: false
+
+    # 회전 앵커: 종료 대신 근접 보상 (Stage 1/2와 동일)
+    anchor_terminate: false
+    anchor_proximity_reward_weight: 10.0
+    anchor_proximity_radius: 0.2
+
+    # 전환 커리큘럼 (Stage 1/2와 동일)
+    switch_enabled: true
+    switch_count_range: [1, 4]
+    switch_min_dwell: 100
+    switch_mode: align
+    random_init_phase: true
+    episode_horizon: 1000
+
+sampling:
+  num_envs: 8
+  vec_env: subproc
+  start_method: spawn
+
+normalization:
+  enabled: true
+  clip_obs: 10.0
+  epsilon: 1.0e-8
+
+action_normalization:
+  enabled: true
+
+# Stage 2 final 재개 (2026-09-10 정책 폴더 정리 후 경로; 이동 전 runs/ppo_unified_transition_stage2/20260909-210657-…)
+resume:
+  model_path: policies/unified/02_transition_stage2/final_model.zip
+  vecnormalize_path: policies/unified/02_transition_stage2/vecnormalize.pkl
+
+algorithm:
+  name: PPO
+  policy: MlpPolicy
+  device: auto
+  kwargs:
+    learning_rate: 0.0002
+    gamma: 0.99
+    n_steps: 512
+    batch_size: 512
+    n_epochs: 3
+    target_kl: 0.04
+  policy_kwargs:
+    net_arch: [512, 512, 512, 512, 512]
+    activation_fn: tanh
+
+# 추가 40M (누적 120M)
+training:
+  total_timesteps: 40000000
+
+evaluation:
+  enabled: true
+  eval_freq: 250000
+  n_eval_episodes: 20
+  deterministic: true
+
+checkpointing:
+  enabled: true
+  save_freq: 500000
+
+video:
+  enabled: true
+  start_iteration: 10
+  record_every_iterations: 200
+  video_length: 600
+  deterministic: true

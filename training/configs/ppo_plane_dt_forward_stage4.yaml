@@ -2,7 +2,7 @@ schema_version: 2
 
 # GD control group (direct torque), forward (+X), stage 4 of 5.
 #
-# Mirrors policies/path_tracking/forward/04_target_kl_stabilization
+# Mirrors policies/path_tracking/old/forward_delta23/04_target_kl_stabilization
 # (config: ppo_plane_curriculum_x_finetune.yaml): lr 1e-4 -> 5e-5,
 # n_epochs 3 -> 2, target_kl 0.04, for 1,048,576 steps (256 PPO iterations).
 # Resumes from stage 3's FINAL model. Resume paths are supplied by
