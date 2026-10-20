@@ -1802,6 +1802,15 @@ PPO 설정은 4런 비교 우승 레시피(run 3: `n_epochs 10` + `learning_rate
 - 테스트: 완성 계보의 실제 설정(resolved_config.yaml / iter4 YAML)으로 `plane-v0`(forward 전문가), `plane-rotation-v0`(ccw), `plane-unified-v0`(Stage 3), `plane-moving-init-v0`(iter4, 상태 은행 없으면 건너뜀)을 고정 시드 123·고정 행동열로 300스텝 돌려 관측 차원, 총 리턴, 보상·비용 항별 합계, 종료·절단 횟수, 마지막 무게중심을 `tests/golden.json`과 1e-6 허용으로 비교. 사전 확인: 네 환경 모두 재실행 차이 0(결정론), 환경당 약 0.5초. 보상은 info 항의 단순 합이 아니라(최대 차이 1e2~1e3) 분해 항등식 대신 항별 합계를 잠금. 기준값에는 plane_v3 종료 벌점 0 결함 등 현재 동작이 그대로 들어감(주석 명시).
 - 훅: `PreToolUse`에서 Bash 명령에 `launch_training.sh`/`train.py`가 있으면 "ask"; 보호 파일 이름 + 쓰기 흔적(sed -i, >, tee, mv, cp, write_text 등)이 함께 있으면 "ask"; Edit/Write/MultiEdit/NotebookEdit 대상이 보호 파일이면 "ask". 보호 목록: plane_v3, plane_rotation_v1, plane_unified_v1, plane_moving_init_v1, gait_provider, gait_v2, gait_v3, phase_align. 훅은 우회 가능하므로 의미 변화 감지는 테스트가 맡음. 설정은 새 세션부터 적용.
 
+---
+
+## 2026-10-20 — 하네스 정비 5단계: 결과 파일 위치 규칙, 연구 일지, /report 커맨드
+
+**커밋:** (이 항목을 포함한 커밋)
+**요청:** 하네스 재점검 5단계 "연구 진행을 문서로 기록하면서 시각화·발표까지 이어지는 흐름". 사용자 선택: 결과 JSON은 `results/<주제>/`, 보고 명령은 슬래시 커맨드 `/report`, 일지는 실험 하나가 한 항목.
+**파일:** `results/`(신규, 기존 결과 JSON 51개 4.7MB를 `runs/`에서 복사 — 원본은 그대로), `training/validate_paths.py`·`training/eval_phase_rules.py`·`training/eval_expert_transitions.py`(기본 출력 경로 `runs/…` → `results/…`), `training/bench_unified_ckpts.py`(사용 예), `docs/deck_src/build_deck_plain.py`(결과 JSON 읽는 경로 6곳 → `results/`), `docs/deck_src/README.md`, `docs/RESEARCH_LOG.md`(신규, 틀 + 2026-09 캠페인 7항목), `.claude/commands/report.md`(신규), `CLAUDE.md`("연구 기록" 절 신설)
+**변경:** 평가·검증 스크립트의 기본 출력이 git 추적 폴더 `results/`가 되어 저장소만으로 덱의 수치 슬라이드를 다시 만들 수 있음(영상 슬라이드는 `runs/` 또는 백업 필요). 덱 빌드는 `docs/deck_src`를 데이터 폴더로 쓰며 포스터도 거기에 만들어 추적. `/report`: 결과 확인 → 판정 초안 → 비판적 검토 → 일지 항목 → 슬라이드 → 덱 빌드·검증·렌더 확인 → 변경 이력·백업 → 보고. 코드에 손으로 적힌 옛 수치는 이번에 JSON화하지 않고(docstring에 출처만 명시) 다음 실험부터 규칙 적용.
+
 <!-- 이후 Claude가 변경을 가할 때마다 아래 형식으로 항목을 추가합니다.
 
 ## YYYY-MM-DD — 변경 제목

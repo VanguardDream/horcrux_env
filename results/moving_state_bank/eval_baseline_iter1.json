@@ -1,0 +1,84 @@
+{
+ "label": "baseline_iter1",
+ "bank": "runs/moving_state_bank/bank_iter1.npz",
+ "args": {
+  "bank": "runs/moving_state_bank/bank_iter1.npz",
+  "targets": [
+   "diag_fr",
+   "diag_bl",
+   "forward"
+  ],
+  "override": [],
+  "states_per_source": 20,
+  "post_steps": 150,
+  "rest_episodes": 5,
+  "rest_steps": 1000,
+  "seed": 0,
+  "out": "runs/moving_state_bank/eval_baseline_iter1.json",
+  "label": "baseline_iter1"
+ },
+ "results": {
+  "diag_fr": {
+   "rest": {
+    "speed": 0.4554397279440828,
+    "ret": 29551.78725849413,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "forward": 0.4,
+    "left": 0.55,
+    "right": 0.0,
+    "diag_fl": 0.5,
+    "backward": 0.3,
+    "diag_bl": 0.0,
+    "diag_br": 0.3,
+    "ccw": 0.3,
+    "cw": 0.45
+   },
+   "entry_fail_mean": 0.3111111111111111,
+   "model": "/home/bong/projects/horcrux_env/policies/path_tracking/diag_forward_right/03_diag_fr_continue_stage3/evaluation/best_model.zip"
+  },
+  "diag_bl": {
+   "rest": {
+    "speed": 0.49178614091888306,
+    "ret": 30632.956419751583,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "forward": 0.6,
+    "left": 0.35,
+    "right": 0.0,
+    "diag_fl": 0.4,
+    "diag_fr": 0.0,
+    "backward": 0.6,
+    "diag_br": 0.15,
+    "ccw": 0.45,
+    "cw": 0.4
+   },
+   "entry_fail_mean": 0.3277777777777777,
+   "model": "/home/bong/projects/horcrux_env/policies/path_tracking/diag_backward_left/03_diag_bl_continue_stage3/evaluation/best_model.zip"
+  },
+  "forward": {
+   "rest": {
+    "speed": 0.6173562793019108,
+    "ret": 37989.52122748214,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "left": 0.0,
+    "right": 0.15,
+    "diag_fl": 0.0,
+    "diag_fr": 0.3,
+    "backward": 0.05,
+    "diag_bl": 0.0,
+    "diag_br": 0.05,
+    "ccw": 0.5,
+    "cw": 0.45
+   },
+   "entry_fail_mean": 0.16666666666666666,
+   "model": "/home/bong/projects/horcrux_env/policies/path_tracking/forward/03_forward_delta0_continue_stage3/evaluation/best_model.zip"
+  }
+ },
+ "table": "| 목표 \\ 출발 | forward | left | right | diag_fl | diag_fr | backward | diag_bl | diag_br | ccw | cw | 평균 |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n| diag_fr | 0.40 | 0.55 | 0.00 | 0.50 | - | 0.30 | 0.00 | 0.30 | 0.30 | 0.45 | 0.311 |\n| diag_bl | 0.60 | 0.35 | 0.00 | 0.40 | 0.00 | 0.60 | - | 0.15 | 0.45 | 0.40 | 0.328 |\n| forward | - | 0.00 | 0.15 | 0.00 | 0.30 | 0.05 | 0.00 | 0.05 | 0.50 | 0.45 | 0.167 |",
+ "elapsed_sec": 157.5523076057434
+}

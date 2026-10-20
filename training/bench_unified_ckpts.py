@@ -5,7 +5,7 @@
 전환 시작 위상 규칙(--align-rule)은 환경 kwargs로 넘긴다 — 같은 시드면 전환 일정은 같고 시작 위상만 규칙에 따라 다르다.
 
 사용:
-  python training/bench_unified_ckpts.py --out runs/unified_bench/s3_vs_s4.json --align-rule lat \
+  python training/bench_unified_ckpts.py --out results/unified_bench/s3_vs_s4.json --align-rule lat \
       --cand "S3 final=policies/unified/03_transition_stage3/final_model.zip:policies/unified/03_transition_stage3/vecnormalize.pkl" \
       --cand "S4 final=runs/.../final_model.zip:runs/.../vecnormalize.pkl"
 """

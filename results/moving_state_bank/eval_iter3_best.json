@@ -1,0 +1,88 @@
+{
+ "label": "iter3_best",
+ "bank": "/home/bong/projects/horcrux_env/runs/moving_state_bank/bank_iter1.npz",
+ "args": {
+  "bank": "/home/bong/projects/horcrux_env/runs/moving_state_bank/bank_iter1.npz",
+  "targets": [
+   "diag_fr",
+   "diag_bl",
+   "forward"
+  ],
+  "override": [
+   "diag_fr=runs/ppo_plane_diag_fr_moving_init_iter3/20260911-170530-509508_ppo_plane_diag_fr_moving_init_iter3/evaluation/best_model.zip:runs/ppo_plane_diag_fr_moving_init_iter3/20260911-170530-509508_ppo_plane_diag_fr_moving_init_iter3/evaluation/best_model_vecnormalize.pkl",
+   "diag_bl=runs/ppo_plane_diag_bl_moving_init_iter3/20260911-170530-497693_ppo_plane_diag_bl_moving_init_iter3/evaluation/best_model.zip:runs/ppo_plane_diag_bl_moving_init_iter3/20260911-170530-497693_ppo_plane_diag_bl_moving_init_iter3/evaluation/best_model_vecnormalize.pkl",
+   "forward=runs/ppo_plane_forward_moving_init_iter3/20260911-170530-646902_ppo_plane_forward_moving_init_iter3/evaluation/best_model.zip:runs/ppo_plane_forward_moving_init_iter3/20260911-170530-646902_ppo_plane_forward_moving_init_iter3/evaluation/best_model_vecnormalize.pkl"
+  ],
+  "states_per_source": 20,
+  "post_steps": 150,
+  "rest_episodes": 5,
+  "rest_steps": 1000,
+  "seed": 0,
+  "out": "runs/moving_state_bank/eval_iter3_best.json",
+  "label": "iter3_best"
+ },
+ "results": {
+  "diag_fr": {
+   "rest": {
+    "speed": 0.4637277655214995,
+    "ret": 29566.15669212077,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "forward": 0.5,
+    "left": 0.6,
+    "right": 0.0,
+    "diag_fl": 0.55,
+    "backward": 0.1,
+    "diag_bl": 0.0,
+    "diag_br": 0.35,
+    "ccw": 0.35,
+    "cw": 0.5
+   },
+   "entry_fail_mean": 0.3277777777777778,
+   "model": "runs/ppo_plane_diag_fr_moving_init_iter3/20260911-170530-509508_ppo_plane_diag_fr_moving_init_iter3/evaluation/best_model.zip"
+  },
+  "diag_bl": {
+   "rest": {
+    "speed": 0.46911615845798044,
+    "ret": 28514.481997347168,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "forward": 0.7,
+    "left": 0.3,
+    "right": 0.0,
+    "diag_fl": 0.5,
+    "diag_fr": 0.05,
+    "backward": 0.6,
+    "diag_br": 0.15,
+    "ccw": 0.7,
+    "cw": 0.75
+   },
+   "entry_fail_mean": 0.4166666666666667,
+   "model": "runs/ppo_plane_diag_bl_moving_init_iter3/20260911-170530-497693_ppo_plane_diag_bl_moving_init_iter3/evaluation/best_model.zip"
+  },
+  "forward": {
+   "rest": {
+    "speed": 0.6067898012723638,
+    "ret": 36847.17373166968,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "left": 0.0,
+    "right": 0.2,
+    "diag_fl": 0.0,
+    "diag_fr": 0.35,
+    "backward": 0.05,
+    "diag_bl": 0.0,
+    "diag_br": 0.0,
+    "ccw": 0.4,
+    "cw": 0.55
+   },
+   "entry_fail_mean": 0.17222222222222222,
+   "model": "runs/ppo_plane_forward_moving_init_iter3/20260911-170530-646902_ppo_plane_forward_moving_init_iter3/evaluation/best_model.zip"
+  }
+ },
+ "table": "| 목표 \\ 출발 | forward | left | right | diag_fl | diag_fr | backward | diag_bl | diag_br | ccw | cw | 평균 |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n| diag_fr | 0.50 | 0.60 | 0.00 | 0.55 | - | 0.10 | 0.00 | 0.35 | 0.35 | 0.50 | 0.328 |\n| diag_bl | 0.70 | 0.30 | 0.00 | 0.50 | 0.05 | 0.60 | - | 0.15 | 0.70 | 0.75 | 0.417 |\n| forward | - | 0.00 | 0.20 | 0.00 | 0.35 | 0.05 | 0.00 | 0.00 | 0.40 | 0.55 | 0.172 |",
+ "elapsed_sec": 96.06120300292969
+}

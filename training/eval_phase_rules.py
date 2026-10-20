@@ -220,7 +220,7 @@ def main() -> None:
             summary[name][rule] = dict(per_source=dict(zip([s for s in NAMES if s != name], vals)), mean=float(np.mean(vals)))
             lines.append(f"| {name} | {rule} | " + " | ".join(row) + f" | {np.mean(vals):.3f} |")
     print("\n".join(lines))
-    out = a.out or (ROOT / "runs/moving_state_bank" / f"eval_{a.label}.json")
+    out = a.out or (ROOT / "results/moving_state_bank" / f"eval_{a.label}.json")   # git 추적 폴더 (2026-10-20)
     out.parent.mkdir(parents=True, exist_ok=True)
     json.dump(dict(label=a.label, bank=a.bank, args=vars(a) | {"out": str(out)}, rules=a.rules, targets=a.targets,
                    n_patterns={NAMES[g]: len(table.table[g]) for g in range(N_CMD)}, summary=summary, records=records,

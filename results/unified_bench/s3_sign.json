@@ -1,0 +1,20 @@
+{
+ "align_rule": "sign",
+ "episodes": 40,
+ "config": "/home/bong/projects/horcrux_env/training/configs/ppo_unified_transition_stage3.yaml",
+ "results": {
+  "S3 final": {
+   "ret": 16413.610421480447,
+   "ret_sd": 17063.356466621874,
+   "eplen": 897.95,
+   "survive": 0.75,
+   "fail100": 0.06578947368421052,
+   "fail203": 0.058823529411764705,
+   "n_sw": 76,
+   "n203": 17,
+   "n_ep": 40,
+   "model": "policies/unified/03_transition_stage3/final_model.zip",
+   "vecnorm": "policies/unified/03_transition_stage3/vecnormalize.pkl"
+  }
+ }
+}

@@ -1,0 +1,88 @@
+{
+ "label": "iter2_final",
+ "bank": "runs/moving_state_bank/bank_iter1.npz",
+ "args": {
+  "bank": "runs/moving_state_bank/bank_iter1.npz",
+  "targets": [
+   "diag_fr",
+   "diag_bl",
+   "forward"
+  ],
+  "override": [
+   "diag_fr=runs/ppo_plane_diag_fr_moving_init_iter2/20260910-214150-436457_ppo_plane_diag_fr_moving_init_iter2/final_model.zip:runs/ppo_plane_diag_fr_moving_init_iter2/20260910-214150-436457_ppo_plane_diag_fr_moving_init_iter2/vecnormalize.pkl",
+   "diag_bl=runs/ppo_plane_diag_bl_moving_init_iter2/20260910-214153-455350_ppo_plane_diag_bl_moving_init_iter2/final_model.zip:runs/ppo_plane_diag_bl_moving_init_iter2/20260910-214153-455350_ppo_plane_diag_bl_moving_init_iter2/vecnormalize.pkl",
+   "forward=runs/ppo_plane_forward_moving_init_iter2/20260910-214156-621229_ppo_plane_forward_moving_init_iter2/final_model.zip:runs/ppo_plane_forward_moving_init_iter2/20260910-214156-621229_ppo_plane_forward_moving_init_iter2/vecnormalize.pkl"
+  ],
+  "states_per_source": 20,
+  "post_steps": 150,
+  "rest_episodes": 5,
+  "rest_steps": 1000,
+  "seed": 0,
+  "out": "runs/moving_state_bank/eval_iter2_final.json",
+  "label": "iter2_final"
+ },
+ "results": {
+  "diag_fr": {
+   "rest": {
+    "speed": 0.46983964838985537,
+    "ret": 30916.156637991888,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "forward": 0.6,
+    "left": 0.6,
+    "right": 0.0,
+    "diag_fl": 0.35,
+    "backward": 0.15,
+    "diag_bl": 0.0,
+    "diag_br": 0.55,
+    "ccw": 0.55,
+    "cw": 0.45
+   },
+   "entry_fail_mean": 0.3611111111111111,
+   "model": "runs/ppo_plane_diag_fr_moving_init_iter2/20260910-214150-436457_ppo_plane_diag_fr_moving_init_iter2/final_model.zip"
+  },
+  "diag_bl": {
+   "rest": {
+    "speed": 0.4970336613459986,
+    "ret": 30912.67529673456,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "forward": 0.65,
+    "left": 0.3,
+    "right": 0.0,
+    "diag_fl": 0.4,
+    "diag_fr": 0.0,
+    "backward": 0.4,
+    "diag_br": 0.1,
+    "ccw": 0.35,
+    "cw": 0.4
+   },
+   "entry_fail_mean": 0.2888888888888889,
+   "model": "runs/ppo_plane_diag_bl_moving_init_iter2/20260910-214153-455350_ppo_plane_diag_bl_moving_init_iter2/final_model.zip"
+  },
+  "forward": {
+   "rest": {
+    "speed": 0.6259776538283907,
+    "ret": 38931.745959552296,
+    "fall_rate": 0.0
+   },
+   "entry_fail": {
+    "left": 0.0,
+    "right": 0.25,
+    "diag_fl": 0.0,
+    "diag_fr": 0.35,
+    "backward": 0.0,
+    "diag_bl": 0.0,
+    "diag_br": 0.0,
+    "ccw": 0.3,
+    "cw": 0.7
+   },
+   "entry_fail_mean": 0.17777777777777776,
+   "model": "runs/ppo_plane_forward_moving_init_iter2/20260910-214156-621229_ppo_plane_forward_moving_init_iter2/final_model.zip"
+  }
+ },
+ "table": "| 목표 \\ 출발 | forward | left | right | diag_fl | diag_fr | backward | diag_bl | diag_br | ccw | cw | 평균 |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n| diag_fr | 0.60 | 0.60 | 0.00 | 0.35 | - | 0.15 | 0.00 | 0.55 | 0.55 | 0.45 | 0.361 |\n| diag_bl | 0.65 | 0.30 | 0.00 | 0.40 | 0.00 | 0.40 | - | 0.10 | 0.35 | 0.40 | 0.289 |\n| forward | - | 0.00 | 0.25 | 0.00 | 0.35 | 0.00 | 0.00 | 0.00 | 0.30 | 0.70 | 0.178 |",
+ "elapsed_sec": 98.03091502189636
+}

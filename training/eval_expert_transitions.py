@@ -152,7 +152,7 @@ def main() -> None:
         lines.append(f"| {name} | " + " | ".join(row) + f" | {results[name]['entry_fail_mean']:.3f} |")
     table = "\n".join(lines)
     print(table)
-    out = a.out or (ROOT / "runs/moving_state_bank" / f"eval_{a.label}_{time.strftime('%Y%m%d-%H%M%S')}.json")
+    out = a.out or (ROOT / "results/moving_state_bank" / f"eval_{a.label}_{time.strftime('%Y%m%d-%H%M%S')}.json")   # git 추적 폴더 (2026-10-20)
     out.parent.mkdir(parents=True, exist_ok=True)
     json.dump(dict(label=a.label, bank=a.bank, args=vars(a) | {"out": str(out)}, results=results, table=table,
                    elapsed_sec=time.time() - t0), open(out, "w"), indent=1, ensure_ascii=False, default=str)

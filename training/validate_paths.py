@@ -1,12 +1,12 @@
 """다양한 웨이포인트 경로로 경로 추종 성능을 검증하고, 두 설정을 같은 시드끼리 짝지어 비교한다 (2026-09-14).
 
 run 모드: 정책·규칙·커맨더 설정 하나로 경로 목록 × 시드를 돌려(path_following.py 서브프로세스, 영상 없음)
-          result.txt를 모아 runs/path_validation/<tag>.json 으로 저장한다.
+          result.txt를 모아 results/path_validation/<tag>.json 으로 저장한다 (git 추적, 2026-10-20 runs/에서 이동).
 compare 모드: JSON 두 개를 경로·시드로 짝지어 평균 오차·최대 오차·시간·전환·완주를 비교한다(부호 검정).
 
 사용:
   python training/validate_paths.py run --tag s3_lat --policy unified --model ... --vecnorm ... --align-rule lat
-  python training/validate_paths.py compare runs/path_validation/s3_lat.json runs/path_validation/s4_lat.json
+  python training/validate_paths.py compare results/path_validation/s3_lat.json results/path_validation/s4_lat.json
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ def parse_result(folder: Path) -> dict | None:
 
 
 def run_mode(a) -> None:
-    out_dir = ROOT / "runs/path_validation"
+    out_dir = ROOT / "results/path_validation"   # 결과 JSON은 git 추적 폴더에 (CLAUDE.md "연구 기록")
     out_dir.mkdir(parents=True, exist_ok=True)
     records = []
     t0 = time.time()

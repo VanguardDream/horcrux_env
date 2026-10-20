@@ -1,7 +1,7 @@
 """연구 정리 덱 — 사용자 템플릿 위에, 소리 내어 읽기 쉬운 문장으로 전면 재작성 (2026-09-11).
 
 원칙: 한 문장에 한 가지 내용. 기호(→, ·, /) 대신 말로 푼다. 숫자는 꼭 필요한 것만.
-수치 출처: CLAUDE_CHANGES.md, TRAINING_HISTORY.txt, MOVING_INIT_CAMPAIGN.txt, runs/moving_state_bank/eval_*.json
+수치 출처: results/ 아래 결과 JSON(2026-10-20부터 git 추적), 그 전 수치는 CLAUDE_CHANGES.md, TRAINING_HISTORY.txt, MOVING_INIT_CAMPAIGN.txt에서 옮긴 것
 """
 import glob
 import json
@@ -24,6 +24,7 @@ from pptx.util import Emu, Inches, Pt
 ROOT = Path("/home/bong/projects/horcrux_env")
 SC = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent
 POSTERS = SC / "posters"
+POSTERS.mkdir(parents=True, exist_ok=True)   # 처음 실행하는 데이터 폴더에서도 포스터를 만들 수 있게 (2026-10-20)
 TEMPLATE = ROOT / "docs" / "PPT샘플.pptx"
 OUT = ROOT / "docs" / "Horcrux_transition_research_2026-09_template.pptx"
 CURVES = json.load(open(SC / "curves.json"))
@@ -31,7 +32,7 @@ BENCH = json.load(open(SC / "bench_ckpts.json")) if (SC / "bench_ckpts.json").ex
 
 
 def load_eval(label):
-    p = ROOT / "runs/moving_state_bank" / f"eval_{label}.json"
+    p = ROOT / "results/moving_state_bank" / f"eval_{label}.json"
     return json.load(open(p))["results"] if p.exists() else None
 
 
@@ -40,7 +41,7 @@ EVALS = {k: load_eval(k) for k in ("baseline_iter1", "iter1_final", "iter1_best"
 
 def load_phase(label):
     """시작 위상 규칙 비교 평가(eval_phase_rules_*.json) → {목표: {규칙: 평균 실패}}"""
-    p = ROOT / "runs/moving_state_bank" / f"eval_phase_rules{('_' + label) if label else ''}.json"
+    p = ROOT / "results/moving_state_bank" / f"eval_phase_rules{('_' + label) if label else ''}.json"
     if not p.exists():
         return {}
     d = json.load(open(p))
@@ -1109,7 +1110,7 @@ card(s, X0, 3.8, CW, 3.05, "판정 (검토 에이전트의 확인을 거친 문�
       "한계입니다. 여러 비교를 한꺼번에 했으므로 보정하면 남는 결과는 합친 정책의 네모 10대 0 하나입니다. 회전각 표본이 양수 쪽에 치우쳤고, 새 규칙은 가로 우선과 표 가운데 열 고르기 두 가지가 함께 바뀐 것이라 어느 쪽 효과인지 모릅니다. 명령 기록을 저장하지 않아 실제 전환 구성은 확인하지 못했습니다."], size=8.5)
 
 # P3-13 커맨더 실험 v3 (갱신 주기 × 도착 판정)
-V3 = json.load(open(ROOT / "runs/path_follow_demo/v3_summary.json")) if (ROOT / "runs/path_follow_demo/v3_summary.json").exists() else None
+V3 = json.load(open(ROOT / "results/path_follow_demo/v3_summary.json")) if (ROOT / "results/path_follow_demo/v3_summary.json").exists() else None
 s = content_slide("경로 추종 재실험 ③ 갱신 주기")
 note(s, X0, 1.3, CW, 0.6, "갱신 주기가 너무 길다는 지적을 검증했습니다. 합친 정책과 새 규칙으로 고정하고, 주기 25, 10, 5, 2, 1스텝과 도착 판정 두 가지(원, 수직면)를 조합해 경로 세 개, 시드 열 개로 270번 돌렸습니다. 기준은 지금 설정인 주기 25스텝과 원 판정입니다.", size=9)
 if V3:
@@ -1137,9 +1138,9 @@ card(s, X0, 4.85, CW, 2.0, "판정 (검토 에이전트의 재계산을 거친 �
 
 # ---------------------------------------------------------------------------
 # 자율 캠페인 (2026-09-14 저녁): 다양한 경로 검증, 커맨더 최적화, Stage 4 비교
-# 데이터: runs/path_validation/*.json (validate_paths.py), runs/unified_bench/*.json (bench_unified_ckpts.py)
+# 데이터: results/path_validation/*.json (validate_paths.py), results/unified_bench/*.json (bench_unified_ckpts.py)
 # ---------------------------------------------------------------------------
-VAL_DIR = ROOT / "runs/path_validation"
+VAL_DIR = ROOT / "results/path_validation"
 PATH_KO = {"square": "네모", "star": "별", "gauntlet": "장애물", "zigzag": "지그재그", "scurve": "S자", "octagon": "팔각형",
            "serpentine": "굽이길", "uturn": "유턴", "random": "무작위"}
 VAL_KINDS = list(PATH_KO)
@@ -1297,7 +1298,7 @@ card(s, X0, 5.33, CW, 1.52, "판정 (검토 에이전트의 확인을 거친 문
 # C-5 Stage 4 이어 학습 (lat 규칙으로 학습) — 결과 파일이 있을 때만
 BENCH4 = {}
 for rule in ("sign", "lat"):
-    p = ROOT / "runs/unified_bench" / f"s3s4_{rule}.json"
+    p = ROOT / "results/unified_bench" / f"s3s4_{rule}.json"
     if p.exists():
         BENCH4[rule] = json.load(open(p, encoding="utf-8"))["results"]
 S4_VAL = val_load("s4_lat")
@@ -1351,7 +1352,7 @@ card(s, X0, 5.05, CW, 1.75, "결과물은 여기에 있습니다",
      ["합친 정책 계보는 policies/unified 폴더에 있습니다. 대표 모델은 03_transition_stage3의 final_model.zip과 vecnormalize.pkl입니다.",
       "전문가 이어 학습 결과는 runs 폴더의 ppo_plane_*_moving_init_iter1부터 iter4에 있고, 정리하면 policies/path_tracking 아래 04_부터 07_로 옮깁니다.",
       "시작 위상 규칙 함수는 horcrux_env/envs/phase_align.py에 있고, 수학 근거는 docs/Horcrux_phase_selection_math_2026-09.pptx에 있습니다.",
-      "넷째 단계 run은 runs/ppo_unified_transition_stage4에 있고, 정리하면 policies/unified/04_transition_stage4로 옮깁니다. 경로 검증 결과는 runs/path_validation, 검증 드라이버는 training/validate_paths.py, 체크포인트 벤치마크는 training/bench_unified_ckpts.py입니다.",
+      "넷째 단계 run은 runs/ppo_unified_transition_stage4에 있고, 정리하면 policies/unified/04_transition_stage4로 옮깁니다. 경로 검증 결과는 results/path_validation(git 추적), 검증 드라이버는 training/validate_paths.py, 체크포인트 벤치마크는 training/bench_unified_ckpts.py입니다.",
       "시연 영상은 runs/path_follow_demo와 runs/policy_showcase에 있습니다. 변경 이력은 CLAUDE_CHANGES.md입니다."], size=8)
 
 # 부록 설정
