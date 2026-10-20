@@ -1,0 +1,91 @@
+{
+ "forward_expert": {
+  "obs_dim": 97,
+  "total_reward": -13394.487498459757,
+  "terms": {
+   "reward_linear_movement": -1189.9163782357693,
+   "reward_angular_movement": 0.0,
+   "reward_efficiency": -378.62939758356134,
+   "reward_healthy": 294.0,
+   "cost_ctrl": 0.0,
+   "cost_unhealthy": 0.0,
+   "cost_orientation": -11195.41926414455,
+   "cost_yaw_vel": -924.5224584958702,
+   "cost_proj_dist": 0.0
+  },
+  "n_terminated": 0,
+  "n_truncated": 0,
+  "final_com_xy": [
+   -0.5022905768868222,
+   -0.72254388338092
+  ]
+ },
+ "ccw_rotation": {
+  "obs_dim": 97,
+  "total_reward": -16556.332420509687,
+  "terms": {
+   "reward_linear_movement": 0.0,
+   "reward_angular_movement": -1215.842126593165,
+   "reward_efficiency": -515.6040047706338,
+   "reward_healthy": 188.0,
+   "cost_ctrl": 0.0,
+   "cost_unhealthy": -6000.0,
+   "cost_orientation": 0.0,
+   "cost_yaw_vel": 0.0,
+   "cost_proj_dist": 0.0,
+   "cost_anchor": -2875.8571582634145,
+   "cost_overspeed": -6137.029130882479,
+   "cost_trans_vel": 0.0
+  },
+  "n_terminated": 6,
+  "n_truncated": 0,
+  "final_com_xy": [
+   -0.4414016955571688,
+   -0.3250615523363741
+  ]
+ },
+ "unified_stage3": {
+  "obs_dim": 97,
+  "total_reward": -4388.336278798272,
+  "terms": {
+   "reward_linear_movement": -722.4677719620671,
+   "reward_angular_movement": 0.0,
+   "reward_efficiency": -229.56751679711027,
+   "reward_healthy": 318.0,
+   "cost_ctrl": 0.0,
+   "cost_unhealthy": 0.0,
+   "cost_orientation": -2836.9263300762154,
+   "cost_yaw_vel": -917.3746599628792,
+   "cost_proj_dist": 0.0
+  },
+  "n_terminated": 0,
+  "n_truncated": 0,
+  "final_com_xy": [
+   -0.2669351619903171,
+   1.2069579554146095
+  ]
+ },
+ "moving_init_iter4": {
+  "obs_dim": 97,
+  "total_reward": -16610.280633042606,
+  "terms": {
+   "reward_linear_movement": -1331.2164773717598,
+   "reward_angular_movement": 0.0,
+   "reward_efficiency": -424.4684584323304,
+   "reward_healthy": 282.0,
+   "cost_ctrl": 0.0,
+   "cost_unhealthy": 0.0,
+   "cost_orientation": -14211.815936729974,
+   "cost_yaw_vel": -924.7797605085455,
+   "cost_proj_dist": 0.0,
+   "cost_tilt": 0.0,
+   "cost_push_tilt": 0.0
+  },
+  "n_terminated": 0,
+  "n_truncated": 0,
+  "final_com_xy": [
+   -0.6260200558035599,
+   -0.5906130169457142
+  ]
+ }
+}

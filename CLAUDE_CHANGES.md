@@ -1790,6 +1790,17 @@ PPO 설정은 4런 비교 우승 레시피(run 3: `n_epochs 10` + `learning_rate
 **파일:** `.gitignore`, `docs/Horcrux_*.pptx` 3개(추적 제외, 파일은 그대로 둠)
 **변경:** `/docs/*.pptx`를 무시하되 템플릿 `docs/PPT샘플.pptx`는 예외로 추적 유지. 이미 커밋된 이력은 다시 쓰지 않음. 덱은 `docs/deck_src/` 스크립트로 다시 만들며, 백업 스크립트에 `docs/`를 추가하는 것은 진행 중인 첫 백업이 끝난 뒤(실행 중인 셸 스크립트 수정 방지).
 
+---
+
+## 2026-10-20 — 하네스 정비 4단계: 환경 회귀 테스트와 PreToolUse 확인 훅
+
+**커밋:** (이 항목을 포함한 커밋)
+**요청:** 하네스 재점검 4단계. 사용자 선택: pytest 설치, 훅은 "확인 요구", 보호 대상은 완성 계보 환경 전부.
+**파일:** `tests/test_env_regression.py`(신규), `tests/golden.json`(신규, 기준값), `scripts/hooks/pretool_guard.py`(신규), `.claude/settings.json`(신규), `CLAUDE.md`("실험 안전"에 테스트·훅 항목), conda `horcrux`에 pytest 9.1.1 설치
+**변경:**
+- 테스트: 완성 계보의 실제 설정(resolved_config.yaml / iter4 YAML)으로 `plane-v0`(forward 전문가), `plane-rotation-v0`(ccw), `plane-unified-v0`(Stage 3), `plane-moving-init-v0`(iter4, 상태 은행 없으면 건너뜀)을 고정 시드 123·고정 행동열로 300스텝 돌려 관측 차원, 총 리턴, 보상·비용 항별 합계, 종료·절단 횟수, 마지막 무게중심을 `tests/golden.json`과 1e-6 허용으로 비교. 사전 확인: 네 환경 모두 재실행 차이 0(결정론), 환경당 약 0.5초. 보상은 info 항의 단순 합이 아니라(최대 차이 1e2~1e3) 분해 항등식 대신 항별 합계를 잠금. 기준값에는 plane_v3 종료 벌점 0 결함 등 현재 동작이 그대로 들어감(주석 명시).
+- 훅: `PreToolUse`에서 Bash 명령에 `launch_training.sh`/`train.py`가 있으면 "ask"; 보호 파일 이름 + 쓰기 흔적(sed -i, >, tee, mv, cp, write_text 등)이 함께 있으면 "ask"; Edit/Write/MultiEdit/NotebookEdit 대상이 보호 파일이면 "ask". 보호 목록: plane_v3, plane_rotation_v1, plane_unified_v1, plane_moving_init_v1, gait_provider, gait_v2, gait_v3, phase_align. 훅은 우회 가능하므로 의미 변화 감지는 테스트가 맡음. 설정은 새 세션부터 적용.
+
 <!-- 이후 Claude가 변경을 가할 때마다 아래 형식으로 항목을 추가합니다.
 
 ## YYYY-MM-DD — 변경 제목
