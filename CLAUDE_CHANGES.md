@@ -1750,6 +1750,28 @@ PPO 설정은 4런 비교 우승 레시피(run 3: `n_epochs 10` + `learning_rate
 **변경:** `git_state(run_dir)` 추가, `save_run_metadata`가 이를 사용. metadata.json에 `git_revision`(그대로), `git_dirty`, `git_untracked_source_files`, `git_diff_sha256`, `git_diff_file` 기록. 수정 상태면 `<run_dir>/git_diff.patch` 저장 — 코드 경로(`horcrux_env/`, `training/`, `scripts/`, `pyproject.toml`)의 HEAD 대비 변경 + 같은 폴더의 미추적 소스 파일(.py .yaml .yml .xml .sh .json .txt .md) 전체. `policies/`·`docs/`·`runs/`는 넣지 않음(첫 시도에서 policies 옛 기록 삭제분이 적용 실패해 패치 전체가 막혔음). 되살리기: `git checkout <git_revision> && git apply <run_dir>/git_diff.patch`.
 **검증:** 현재 작업 트리로 패치 생성(약 0.6 MB, 미추적 소스 69개) → HEAD 깨끗한 작업 트리에 `git apply` 성공 → 변경·미추적 코드 파일 92개 전부 작업 트리와 바이트 일치. 이전 run의 metadata는 바꾸지 않음(8월 이후 run의 해시는 여전히 실제 코드와 다름 — 원장에 주의 문구 필요).
 
+---
+
+## 2026-10-20 — 작업 규칙 정리: CLAUDE.md로 모으기, 기술 노트 분리
+
+**커밋:** (미커밋)
+**요청:** 하네스 설정 대화형 정비 2번 항목 "규칙 정리". 사용자 선택: 실험 안전·보고 기준 묶음을 CLAUDE.md로 이동, 추가 규칙 두 개(검토 불가 시 대체 규칙, 임시 폴더에 중요 스크립트 금지), AGENTS.md 기술 설명은 별도 문서로, 같은 내용의 메모리 피드백 파일은 사연만 남겨 축소. 글쓰기·실행 환경 묶음은 CLAUDE.md로 옮기지 않음.
+**파일:** `CLAUDE.md`, `docs/TECH_NOTES.md`(신규), 사용자 메모리(`feedback_claude_changes_log.md`, `feedback_plan_before_training.md`, `feedback_plan_checklist_routine.md`, `feedback_critic_review_before_answer.md`, `MEMORY.md`, `project_direction_policy_campaign.md` 머리 설명)
+**변경:**
+- `CLAUDE.md`: 기존 두 규칙(계획 목록, 변경 이력) 유지 + 작업 방식 2개(요청한 것만 바꾸기, 스크립트는 저장소 안에) + "실험 안전" 5개(학습 시작 금지, runs 소유권, 고정 환경·보상 의미, 모델·통계 짝, 이어 학습마다 새 YAML) + "결과 보고 기준" 8개(비판적 검토, 검토 불가 시 대체 규칙, 표 근거 열, 짝지은 비교, best_model 선택 효과, 학습 상태 확인, 기제 설명은 확인된 것만). 머리에 TECH_NOTES 안내와 "AGENTS.md는 따르지 않음" 명시. 22줄 → 약 80줄.
+- `docs/TECH_NOTES.md`: AGENTS.md의 기술 설명(종료 의미, 관측·행동 정규화, 기본 PPO, 이어 학습, 콜백 빈도, 알려진 함정, 렌더링)을 리눅스 기준으로 옮기고, 실행 환경(conda 경로, launch_training.sh, zsh 주의점, 새 git 버전 기록)과 대화에서 쌓인 함정(낙상 페널티 0, getMvec 부호, max_episode_steps 가로채기, reset 잡음 0, fail_to 번호 순서)을 더함. 버린 것: PowerShell 기본 셸, `C:\` 경로, "보이는 창에서 학습", 왼쪽 정책을 "현재 대표"로 적은 낡은 상태.
+- `AGENTS.md`는 손대지 않음(git 무시 대상 그대로).
+- 메모리: 피드백 파일 4개를 "규칙 본문은 CLAUDE.md, 여기는 사연" 형식으로 축소(검토 파일에는 검토가 실제로 잡은 오류 사례 5개 추가), 목차 갱신, 캠페인 메모리의 낡은 설명("진행 중인 delta=0 전진 학습") 교체. 줄이기 전 사본은 세션 임시 폴더 `scratchpad/memory_backup_20261020/`.
+
+---
+
+## 2026-10-20 — 하네스 정비 1단계: 로그 파일 추적 제외, 원격 SSH 전환, 규칙 커밋
+
+**커밋:** (이 항목을 포함한 커밋)
+**요청:** 하네스 재점검 뒤 "하나씩 진행" — 제안 순서 1단계(커밋·push, SSH 전환, 로그 파일 제외).
+**파일:** `.gitignore`, `MUJOCO_LOG.TXT`(추적 제외, 파일은 그대로 둠), `docs/TECH_NOTES.md`(알려진 함정 한 줄), git 원격 설정
+**변경:** `MUJOCO_LOG.TXT`는 MuJoCo 발산 경고 490건(2026-07-27~08-11, 스케일링 실험)만 담고 그 뒤 변화가 없어 `git rm --cached` 후 무시 목록에 넣음. 원격 `origin`을 HTTPS에서 `git@github.com:VanguardDream/horcrux_env.git`으로 바꿈(HTTPS는 자격 증명 도우미가 없어 push가 막혔고, SSH 키는 이 저장소에 등록돼 있음). 2번 항목 결과(`CLAUDE.md`, `docs/TECH_NOTES.md`)를 함께 커밋.
+
 <!-- 이후 Claude가 변경을 가할 때마다 아래 형식으로 항목을 추가합니다.
 
 ## YYYY-MM-DD — 변경 제목

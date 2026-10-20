@@ -196,3 +196,6 @@ events.out.tfevents.*
 # 실행 중에만 의미 있는 파일과 큰 데이터 (2026-10-19 하네스 정비)
 *.pid
 /policies/**/*.npz
+
+# MuJoCo 발산 경고 로그 (실행 중 자동 생성, 2026-10-20 추적 제외)
+/MUJOCO_LOG.TXT
