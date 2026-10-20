@@ -1780,6 +1780,7 @@ PPO 설정은 4런 비교 우승 레시피(run 3: `n_epochs 10` + `learning_rate
 **요청:** 하네스 재점검에서 "백업 없음"이 가장 큰 문제로 나와 2단계로 진행. 사용자 선택: 8TB 디스크(`/dev/sda`, ext4, 라벨 8TB, UUID 154f1c52-…)를 마운트해 사용, 범위는 `policies` + `runs` 전체(372GB), 보존 규칙은 "아무것도 지우지 않음".
 **파일:** `scripts/backup_to_disk.sh`(신규), `CLAUDE.md`("실험 안전"에 백업·보존 항목 추가)
 **변경:** rsync 추가·갱신 전용 백업(`--delete` 없음, `--partial`, `__pycache__` 제외) + git 번들(`horcrux_env.bundle`, 전체 이력)을 `<BACKUP_ROOT>/horcrux_env/`에 복사, `backup_log.txt`에 시작·종료·크기 기록. 마운트돼 있지 않으면 중단. `--dry-run` 지원. 마운트(관리자 권한)는 사용자가 직접 함 — fstab에 `nofail`로 등록해 디스크가 없어도 부팅이 막히지 않게 안내. 첫 백업은 마운트 뒤 실행.
+**결과(18:19~18:57):** 첫 전체 백업 완료 — 371GB, 파일 수 원본·백업 일치(runs 30,768 / policies 15,519), git 번들 `0f6baa4` 검증 통과, 재실행 시 runs·policies 전송 0건. 그 뒤 범위에 `docs/`(덱·그림·기술 노트, 27파일 57MB)를 더하고 rsync 통계를 상세(`--stats`)로 바꿔 로그에 "전송 파일 수"가 남게 함. 진행률 출력(`--info=progress2`)은 캐리지 리턴으로 로그를 오염시켜 제거. 첫 시도는 세션 백그라운드(10분 제한)로 띄웠다가 중단하고 `setsid nohup`으로 다시 띄웠음(rsync `--partial`이라 이어서 복사). 백업 디스크 남은 공간 6.5TB.
 
 ---
 

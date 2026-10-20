@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 학습 결과 백업: runs/, policies/ 와 git 번들을 백업 디스크로 복사한다 (2026-10-20).
+# 학습 결과 백업: runs/, policies/, docs/ 와 git 번들을 백업 디스크로 복사한다 (2026-10-20).
 #
 #   scripts/backup_to_disk.sh                 # 기본 대상 /mnt/backup8tb/horcrux_env
 #   BACKUP_ROOT=/다른/경로 scripts/backup_to_disk.sh
@@ -34,9 +34,9 @@ cd "$PROJECT_ROOT"
 
 # 1) 결과 폴더: 추가·갱신만, 중단돼도 이어서 복사(--partial). 진행률은 찍지 않는다(로그 오염).
 #    --delete 를 절대 넣지 않는다.
-rsync -a --partial --info=stats1,flist0 $DRY \
+rsync -a --partial --stats --info=flist0 $DRY \
     --exclude '__pycache__/' \
-    runs policies "$DEST/" 2>&1 | tail -n 15 | tee -a "$LOG"
+    runs policies docs "$DEST/" 2>&1 | tail -n 15 | tee -a "$LOG"
 
 # 2) 코드: 전체 git 이력을 번들 하나로 (커밋되지 않은 변경은 포함되지 않으므로 먼저 커밋한다).
 if [[ -z "$DRY" ]]; then
