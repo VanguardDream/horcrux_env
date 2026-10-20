@@ -1772,6 +1772,15 @@ PPO 설정은 4런 비교 우승 레시피(run 3: `n_epochs 10` + `learning_rate
 **파일:** `.gitignore`, `MUJOCO_LOG.TXT`(추적 제외, 파일은 그대로 둠), `docs/TECH_NOTES.md`(알려진 함정 한 줄), git 원격 설정
 **변경:** `MUJOCO_LOG.TXT`는 MuJoCo 발산 경고 490건(2026-07-27~08-11, 스케일링 실험)만 담고 그 뒤 변화가 없어 `git rm --cached` 후 무시 목록에 넣음. 원격 `origin`을 HTTPS에서 `git@github.com:VanguardDream/horcrux_env.git`으로 바꿈(HTTPS는 자격 증명 도우미가 없어 push가 막혔고, SSH 키는 이 저장소에 등록돼 있음). 2번 항목 결과(`CLAUDE.md`, `docs/TECH_NOTES.md`)를 함께 커밋.
 
+---
+
+## 2026-10-20 — 하네스 정비 2단계: 백업 스크립트와 보존 규칙
+
+**커밋:** (미커밋)
+**요청:** 하네스 재점검에서 "백업 없음"이 가장 큰 문제로 나와 2단계로 진행. 사용자 선택: 8TB 디스크(`/dev/sda`, ext4, 라벨 8TB, UUID 154f1c52-…)를 마운트해 사용, 범위는 `policies` + `runs` 전체(372GB), 보존 규칙은 "아무것도 지우지 않음".
+**파일:** `scripts/backup_to_disk.sh`(신규), `CLAUDE.md`("실험 안전"에 백업·보존 항목 추가)
+**변경:** rsync 추가·갱신 전용 백업(`--delete` 없음, `--partial`, `__pycache__` 제외) + git 번들(`horcrux_env.bundle`, 전체 이력)을 `<BACKUP_ROOT>/horcrux_env/`에 복사, `backup_log.txt`에 시작·종료·크기 기록. 마운트돼 있지 않으면 중단. `--dry-run` 지원. 마운트(관리자 권한)는 사용자가 직접 함 — fstab에 `nofail`로 등록해 디스크가 없어도 부팅이 막히지 않게 안내. 첫 백업은 마운트 뒤 실행.
+
 <!-- 이후 Claude가 변경을 가할 때마다 아래 형식으로 항목을 추가합니다.
 
 ## YYYY-MM-DD — 변경 제목

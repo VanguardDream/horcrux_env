@@ -48,6 +48,10 @@
   체크포인트는 같은 스텝 번호끼리. 이어 학습의 `resume`에는 둘 다 적는다.
 - **이어 학습마다 새 YAML·새 `experiment.name`·새 출력 폴더를 쓴다.** 이전 run을
   추적할 수 있게 하고, 해당 계보의 `TRAINING_HISTORY.txt`를 읽고 갱신한다.
+- **학습 결과는 지우지 않고 백업한다.** `runs/`와 `policies/`는 전부 보존한다(체크포인트 포함).
+  백업은 `scripts/backup_to_disk.sh`로 8TB 디스크(`/mnt/backup8tb`)에 추가·갱신만 한다.
+  큰 실험이 끝나면 백업을 돌리고 `backup_log.txt`로 확인한다. 디스크 여유가 모자라면
+  삭제 대신 사용자에게 보고한다.
 
 ## 결과 보고 기준
 
