@@ -1811,6 +1811,15 @@ PPO 설정은 4런 비교 우승 레시피(run 3: `n_epochs 10` + `learning_rate
 **파일:** `results/`(신규, 기존 결과 JSON 51개 4.7MB를 `runs/`에서 복사 — 원본은 그대로), `training/validate_paths.py`·`training/eval_phase_rules.py`·`training/eval_expert_transitions.py`(기본 출력 경로 `runs/…` → `results/…`), `training/bench_unified_ckpts.py`(사용 예), `docs/deck_src/build_deck_plain.py`(결과 JSON 읽는 경로 6곳 → `results/`), `docs/deck_src/README.md`, `docs/RESEARCH_LOG.md`(신규, 틀 + 2026-09 캠페인 7항목), `.claude/commands/report.md`(신규), `CLAUDE.md`("연구 기록" 절 신설)
 **변경:** 평가·검증 스크립트의 기본 출력이 git 추적 폴더 `results/`가 되어 저장소만으로 덱의 수치 슬라이드를 다시 만들 수 있음(영상 슬라이드는 `runs/` 또는 백업 필요). 덱 빌드는 `docs/deck_src`를 데이터 폴더로 쓰며 포스터도 거기에 만들어 추적. `/report`: 결과 확인 → 판정 초안 → 비판적 검토 → 일지 항목 → 슬라이드 → 덱 빌드·검증·렌더 확인 → 변경 이력·백업 → 보고. 코드에 손으로 적힌 옛 수치는 이번에 JSON화하지 않고(docstring에 출처만 명시) 다음 실험부터 규칙 적용.
 
+---
+
+## 2026-10-22 — 하네스 정비 6단계: 검토 에이전트 정의, 낡은 문서 정리
+
+**커밋:** (이 항목을 포함한 커밋)
+**요청:** 하네스 재점검 6단계. 사용자 선택: right 원장은 하나로 합침, 검토 에이전트 모델은 세션과 같게(정의 파일에 모델 미지정).
+**파일:** `.claude/agents/critic.md`(신규), `training/README.md`(385줄 PowerShell 기준 → 리눅스 설치·스모크·자주 쓰는 명령 60줄), `.vscode/settings.json`(인터프리터 경로 `C:\…` → conda 경로), `policies/path_tracking/right/TRAINING_HISTORY.txt`(`_cluade` 파일을 이 이름으로 바꾸고 `_NoNoUSE` 초안을 부록으로 붙인 뒤 삭제), 사용자 메모리 색인(리부탈 항목 "끝남" 표시)
+**변경:** `critic` 에이전트는 결과 JSON·run 산출물을 다시 계산해 문장별 판정/바뀐 점/추가 확인을 쉬운 한국어로 돌려주며 파일을 수정하지 않는다(도구 Read, Grep, Glob, Bash). `/report` 3단계가 이 에이전트를 부른다. 새 세션부터 사용 가능. 이로써 재점검에서 꼽은 6단계(버전 기록·커밋, 백업·보존, 덱 추적 중단, 테스트·훅, 결과 위치·연구 기록, 검토 에이전트·문서 정리)를 모두 마침.
+
 <!-- 이후 Claude가 변경을 가할 때마다 아래 형식으로 항목을 추가합니다.
 
 ## YYYY-MM-DD — 변경 제목

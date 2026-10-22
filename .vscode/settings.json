@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "C:\\Users\\admin\\miniconda3\\envs\\horcrux\\python.exe",
+    "python.defaultInterpreterPath": "/home/bong/anaconda3/envs/horcrux/bin/python",
     "python.terminal.activateEnvironment": true,
     "python-envs.defaultEnvManager": "ms-python.python:conda",
     "python-envs.defaultPackageManager": "ms-python.python:conda"
